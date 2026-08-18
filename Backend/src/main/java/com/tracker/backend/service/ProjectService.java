@@ -4,13 +4,13 @@ import com.tracker.backend.dto.CreateProjectRequest;
 import com.tracker.backend.dto.ProjectResponse;
 import com.tracker.backend.repository.ProjectRepository;
 import com.tracker.backend.entity.Project;
-import com.tracker.backend.repository.ProjectRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
+@Service
 public class ProjectService {
     private final ProjectRepository projectRepository;
 
