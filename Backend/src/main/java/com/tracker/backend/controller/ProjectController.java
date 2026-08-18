@@ -35,7 +35,7 @@ public class ProjectController {
         return ResponseEntity.ok(responses);
     }
 
-     // READ ONE
+    // READ ONE
     @GetMapping("/{id}")
     public ResponseEntity<ProjectResponse> getProjectById(@PathVariable Long id) {
         ProjectResponse response = projectService.getProjectById(id);
@@ -44,8 +44,8 @@ public class ProjectController {
 
     // UPDATE
     @PutMapping("/{id}")
-    public ResponseEntity<ProjectResponse> updateProject(@PathVariable Long id, 
-                                                         @Valid @RequestBody CreateProjectRequest request) {
+    public ResponseEntity<ProjectResponse> updateProject(@PathVariable Long id,
+            @Valid @RequestBody CreateProjectRequest request) {
         ProjectResponse response = projectService.updateProject(id, request);
         return ResponseEntity.ok(response);
     }
