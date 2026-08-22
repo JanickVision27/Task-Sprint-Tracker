@@ -1,0 +1,15 @@
+package com.tracker.backend.repository;
+
+import com.tracker.backend.entity.Sprint;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface SprintRepository extends JpaRepository<Sprint, Long> {
+    // Spring generates the SQL for this automatically!
+    List<Sprint> findByProjectId(Long projectId);
+    
+
+}
