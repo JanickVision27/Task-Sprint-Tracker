@@ -8,8 +8,9 @@ import java.util.List;
 
 @Repository
 public interface SprintRepository extends JpaRepository<Sprint, Long> {
-    // Spring generates the SQL for this automatically!
-    List<Sprint> findByProjectId(Long projectId);
     
-
+    // * Derived Query: Spring reads the method name and auto-generates the SQL.
+    // * "findBy" -> SELECT ... "ProjectId" -> WHERE project_id = ?
+    // ! Returns a List because one Project can have many Sprints.
+    List<Sprint> findByProjectId(Long projectId);
 }
