@@ -9,7 +9,8 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
-public class JWTService {
+@Service
+public class JwtService {
     @Value("${app.jwt.secret}")
     private String jwtSecret;
 
