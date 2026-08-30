@@ -6,7 +6,6 @@ import com.tracker.backend.dto.RegisterRequest;
 import com.tracker.backend.entity.Role;
 import com.tracker.backend.entity.User;
 import com.tracker.backend.repository.UserRepository;
-import com.tracker.backend.service.JwtService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
