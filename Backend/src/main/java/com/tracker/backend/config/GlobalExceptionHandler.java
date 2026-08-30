@@ -10,10 +10,10 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import java.time.LocalDateTime;
 import java.util.*;
 
-// @RestControllerAdvice tells Spring: "Listen to ALL controllers. If an error happens, step in."
+//@RestControllerAdvice tells Spring: "Listen to ALL controllers. If an error happens, step in."
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
-// This method specifically catches the EntityNotFoundException we throw in our Services
+// ! This method specifically catches the EntityNotFoundException we throw in our Services
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleEntityNotFound(EntityNotFoundException ex) {
         
