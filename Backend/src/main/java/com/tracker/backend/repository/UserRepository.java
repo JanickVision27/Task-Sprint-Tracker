@@ -10,6 +10,6 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
 
     // We will need this later for Login! 
-    // Spring generates: SELECT * FROM users WHERE email = ?
+    //* Spring generates: SELECT * FROM users WHERE email = ?
     Optional<User> findByEmail(String email);
 }
