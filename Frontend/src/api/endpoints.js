@@ -15,14 +15,14 @@ export const projectApi = {
 
 // Sprints
 export const sprintApi = {
-  getAll: (projectId) => api.get(`/projects/${projectId}/sprints`),
-  create: (projectId, data) => api.post(`/projects/${projectId}/sprints`, data),
+  getAll: (projectId) => api.get(`/sprints/project/${projectId}`),
+  create: (data) => api.post('/sprints', data),
 };
 
 // Tasks
 export const taskApi = {
-  getBySprint: (sprintId) => api.get(`/sprints/${sprintId}/tasks`),
-  create: (sprintId, data) => api.post(`/sprints/${sprintId}/tasks`, data),
+  getBySprint: (sprintId) => api.get(`/tasks/sprint/${sprintId}`),
+  create: (data) => api.post('/tasks', data),
   update: (taskId, data) => api.put(`/tasks/${taskId}`, data),
   delete: (taskId) => api.delete(`/tasks/${taskId}`),
 };

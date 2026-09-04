@@ -13,7 +13,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         //? 1. Messages FROM the server TO the frontend will be sent to URLs starting with "/topic"
-        // Example: /topic/tasks - The frontend subscribes to this to get updates
+        // Example: /topic/sprints/{sprintId}/tasks - each board receives only its sprint's updates.
         config.enableSimpleBroker("/topic");
         
         //? 2. Messages FROM the frontend TO the server will be sent to URLs starting with "/app"

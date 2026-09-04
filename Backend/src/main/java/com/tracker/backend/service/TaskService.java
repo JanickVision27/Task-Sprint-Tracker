@@ -53,6 +53,7 @@ public class TaskService {
 
     public TaskResponse updateTask(Long id, CreateTaskRequest request) {
         Task task = findTask(id);
+        Long previousSprintId = task.getSprint().getId();
         applyRequest(task, request);
         task.setSprint(findSprint(request.getSprintId()));
         
@@ -60,18 +61,23 @@ public class TaskService {
         
         // BROADCAST: Tell all users a task was updated (e.g., moved on the Kanban board)
         broadcastTaskUpdate(response);
+        // If an update ever moves a task to another sprint, refresh viewers of both boards.
+        if (!previousSprintId.equals(response.getSprintId())) {
+            broadcastTaskUpdate(previousSprintId, response);
+        }
         
         return response;
     }
 
     public void deleteTask(Long id) {
         Task task = findTask(id);
+        Long sprintId = task.getSprint().getId();
         taskRepository.delete(task);
         
         // BROADCAST: Tell all users a task was deleted
         // We send a simple map with the ID so the frontend knows which one to remove from the screen
         Object deletionMessage = Map.of("deletedId", id);
-        messagingTemplate.convertAndSend("/topic/tasks", deletionMessage);
+        messagingTemplate.convertAndSend(taskTopic(sprintId), deletionMessage);
     }
 
     private Task findTask(Long id) {
@@ -106,12 +112,15 @@ public class TaskService {
         return response;
     }
 
-        // Broadcasts the updated task to all connected frontends listening to /topic/tasks
     private void broadcastTaskUpdate(TaskResponse taskResponse) {
-        // The first argument is the "channel" (the URL the frontend is listening to)
-        // The second argument is the data we are sending
+        broadcastTaskUpdate(taskResponse.getSprintId(), taskResponse);
+    }
 
-        System.out.println("BROADCASTING TASK UPDATE VIA WEBSOCKET!");
-        messagingTemplate.convertAndSend("/topic/tasks", taskResponse);
+    private void broadcastTaskUpdate(Long sprintId, TaskResponse taskResponse) {
+        messagingTemplate.convertAndSend(taskTopic(sprintId), taskResponse);
+    }
+
+    private String taskTopic(Long sprintId) {
+        return "/topic/sprints/" + sprintId + "/tasks";
     }
 }

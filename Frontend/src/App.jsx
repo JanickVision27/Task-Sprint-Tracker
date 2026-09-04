@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import BoardPage from './pages/BoardPage';
+import ProjectDetailPage from './pages/ProjectDetailPage';
 
 // React Query client — handles caching and auto-refetching
 const queryClient = new QueryClient();
@@ -29,6 +30,10 @@ export default function App() {
             <Route path="/board/:sprintId" element={
               <ProtectedRoute><BoardPage /></ProtectedRoute>
             } />
+            <Route path="/project/:projectId" element={
+              <ProtectedRoute><ProjectDetailPage /></ProtectedRoute>
+            } />
+            <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="*" element={<Navigate to="/dashboard" />} />
           </Routes>
         </BrowserRouter>
