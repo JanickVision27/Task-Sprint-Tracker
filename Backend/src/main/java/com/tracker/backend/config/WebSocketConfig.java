@@ -24,7 +24,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         //? 3. This is the actual "Door" where the frontend connects to open the tunnel
-        // SockJS is a fallback library that allows WebSockets to work even on older browsers or restrictive networks
+        //! SockJS is a fallback library that allows WebSockets to work even on older browsers or restrictive networks
         registry.addEndpoint("/ws").withSockJS();
     }
 }
