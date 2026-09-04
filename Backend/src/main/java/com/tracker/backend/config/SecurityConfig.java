@@ -30,6 +30,7 @@ public class SecurityConfig {
                 // IMPORTANT: Define which URLs are public and which need a JWT
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll() // Signup and Login are PUBLIC
+                        .requestMatchers("/ws/**").permitAll() // WebSocket connection tunnel is PUBLIC (we secure the messages later)
                         .anyRequest().authenticated() // Everything else REQUIRES a valid JWT
                 )
 

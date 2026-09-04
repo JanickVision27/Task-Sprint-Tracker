@@ -8,18 +8,21 @@ import com.tracker.backend.repository.SprintRepository;
 import com.tracker.backend.repository.TaskRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.messaging.simp.SimpMessagingTemplate; // For sending messages to WebSocket clients
 
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class TaskService {
     private final TaskRepository taskRepository;
     private final SprintRepository sprintRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    public TaskService(TaskRepository taskRepository, SprintRepository sprintRepository) {
+    public TaskService(TaskRepository taskRepository, SprintRepository sprintRepository,SimpMessagingTemplate messagingTemplate) {
         this.taskRepository = taskRepository;
         this.sprintRepository = sprintRepository;
+        this.messagingTemplate = messagingTemplate;
     }
 
     public TaskResponse createTask(CreateTaskRequest request) {
@@ -28,7 +31,13 @@ public class TaskService {
         Task task = new Task();
         applyRequest(task, request);
         task.setSprint(sprint);
-        return mapToResponse(taskRepository.save(task));
+        
+        TaskResponse response = mapToResponse(taskRepository.save(task));
+        
+        // BROADCAST: Tell all users a new task was created
+        broadcastTaskUpdate(response);
+        
+        return response;
     }
 
     public List<TaskResponse> getTasksBySprint(Long sprintId) {
@@ -46,11 +55,23 @@ public class TaskService {
         Task task = findTask(id);
         applyRequest(task, request);
         task.setSprint(findSprint(request.getSprintId()));
-        return mapToResponse(taskRepository.save(task));
+        
+        TaskResponse response = mapToResponse(taskRepository.save(task));
+        
+        // BROADCAST: Tell all users a task was updated (e.g., moved on the Kanban board)
+        broadcastTaskUpdate(response);
+        
+        return response;
     }
 
     public void deleteTask(Long id) {
-        taskRepository.delete(findTask(id));
+        Task task = findTask(id);
+        taskRepository.delete(task);
+        
+        // BROADCAST: Tell all users a task was deleted
+        // We send a simple map with the ID so the frontend knows which one to remove from the screen
+        Object deletionMessage = Map.of("deletedId", id);
+        messagingTemplate.convertAndSend("/topic/tasks", deletionMessage);
     }
 
     private Task findTask(Long id) {
@@ -83,5 +104,14 @@ public class TaskService {
         response.setCreatedAt(task.getCreatedAt());
         response.setUpdatedAt(task.getUpdatedAt());
         return response;
+    }
+
+        // Broadcasts the updated task to all connected frontends listening to /topic/tasks
+    private void broadcastTaskUpdate(TaskResponse taskResponse) {
+        // The first argument is the "channel" (the URL the frontend is listening to)
+        // The second argument is the data we are sending
+
+        System.out.println("BROADCASTING TASK UPDATE VIA WEBSOCKET!");
+        messagingTemplate.convertAndSend("/topic/tasks", taskResponse);
     }
 }
