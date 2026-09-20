@@ -8,6 +8,11 @@ export default defineConfig({
     tailwindcss(),
   ],
   //! This lets your frontend talk to Spring Boot during development without CORS issues
+
+  define:{
+    global: 'globalThis',
+  },
+  
   server: {
     proxy: {
       '/api': 'http://localhost:8080',

@@ -6,6 +6,8 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import BoardPage from './pages/BoardPage';
 import ProjectDetailPage from './pages/ProjectDetailPage';
+import {useWebSocket} from './hooks/useWebSocket';
+
 
 // React Query client — handles caching and auto-refetching
 const queryClient = new QueryClient();
@@ -16,10 +18,16 @@ function ProtectedRoute({ children }) {
   return isAuthenticated ? children : <Navigate to="/login" />;
 }
 
+function WebSocketListener() {
+  useWebSocket();
+  return null;
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClient}>
+        <WebSocketListener />
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
