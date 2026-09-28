@@ -31,6 +31,11 @@ export default function DashboardPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id) => projectApi.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
+  });
+
   function handleCreateSubmit(e) {
     e.preventDefault();
     createMutation.mutate({
@@ -63,8 +68,21 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {projects?.map(project => (
-          <div key={project.id} className="bg-white p-6 rounded-lg shadow cursor-pointer hover:shadow-lg transition"
+          <div key={project.id} className="bg-white p-6 rounded-lg shadow cursor-pointer hover:shadow-lg transition relative group"
             onClick={() => navigate(`/project/${project.id}`)}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (window.confirm('Delete this project and all its sprints/tasks?')) {
+                  deleteMutation.mutate(project.id);
+                }
+              }}
+              className="absolute top-2 right-2 text-gray-300 hover:text-red-600 opacity-0 group-hover:opacity-100 transition font-bold"
+              aria-label={`Delete ${project.name}`}
+            >
+              ✕
+            </button>
+
             <h2 className="text-xl font-semibold">{project.name}</h2>
             <p className="text-gray-500 mt-2">{project.description}</p>
           </div>

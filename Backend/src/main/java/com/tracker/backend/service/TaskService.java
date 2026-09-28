@@ -6,8 +6,10 @@ import com.tracker.backend.entity.Sprint;
 import com.tracker.backend.entity.Task;
 import com.tracker.backend.repository.SprintRepository;
 import com.tracker.backend.repository.TaskRepository;
+import com.tracker.backend.repository.CommentRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.messaging.simp.SimpMessagingTemplate; // For sending messages to WebSocket clients
 
 import java.util.*;
@@ -18,11 +20,13 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final SprintRepository sprintRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final CommentRepository commentRepository;
 
-    public TaskService(TaskRepository taskRepository, SprintRepository sprintRepository,SimpMessagingTemplate messagingTemplate) {
+    public TaskService(TaskRepository taskRepository, SprintRepository sprintRepository, SimpMessagingTemplate messagingTemplate, CommentRepository commentRepository) {
         this.taskRepository = taskRepository;
         this.sprintRepository = sprintRepository;
         this.messagingTemplate = messagingTemplate;
+        this.commentRepository = commentRepository;
     }
 
     public TaskResponse createTask(CreateTaskRequest request) {
@@ -69,9 +73,11 @@ public class TaskService {
         return response;
     }
 
+    @Transactional
     public void deleteTask(Long id) {
         Task task = findTask(id);
         Long sprintId = task.getSprint().getId();
+        commentRepository.deleteAll(commentRepository.findByTaskId(id));
         taskRepository.delete(task);
         
         // BROADCAST: Tell all users a task was deleted

@@ -66,25 +66,34 @@ export default function BoardPage() {
   // Setup drag-and-drop sensors (requires moving the mouse a bit to start drag)
   const sensors = useSensors(useSensor(PointerSensor, { activationDistance: 10 }));
 
-  // Handle dragging over a new column
-  function handleDragOver(event) {
-    // Logic for moving between columns can go here if needed
-  }
-
+  // Handle dropping a task
   // Handle dropping a task
   function handleDragEnd(event) {
     const { active, over } = event;
     setActiveId(null);
 
-    if (!over) return; // Dropped outside a droppable area
+    if (!over) return; // Dropped outside
 
-    const taskId = active.id;
-    const newStatus = over.id; // The column ID is the status (TODO, IN_PROGRESS, DONE)
+    const activeTask = tasks.find(t => t.id === active.id);
+    if (!activeTask) return;
 
-    const task = tasks.find(t => t.id === taskId);
-    if (task && task.status !== newStatus) {
-      // Send update to backend (which will broadcast via WebSocket to other users!)
-      updateMutation.mutate({ id: taskId, ...task, status: newStatus });
+    // Determine the target status
+    let newStatus;
+    
+    // If we dropped it on a column (empty space)
+    if (STATUSES.includes(over.id)) {
+      newStatus = over.id;
+    } else {
+      // If we dropped it on another task, find that task's status
+      const overTask = tasks.find(t => t.id === over.id);
+      if (overTask) {
+        newStatus = overTask.status;
+      }
+    }
+
+    // If we successfully found a new status, and it's different from the old one, update it!
+    if (newStatus && activeTask.status !== newStatus) {
+      updateMutation.mutate({ id: activeTask.id, ...activeTask, status: newStatus });
     }
   }
 
@@ -108,7 +117,6 @@ export default function BoardPage() {
       <DndContext 
         sensors={sensors} 
         onDragStart={(e) => setActiveId(e.active.id)} 
-        onDragOver={handleDragOver} 
         onDragEnd={handleDragEnd}
       >
         <div className="flex gap-6 flex-1 overflow-x-auto">
@@ -117,7 +125,6 @@ export default function BoardPage() {
               key={status} 
               status={status} 
               tasks={tasks?.filter(t => t.status === status) || []} 
-              activeId={activeId}
             />
           ))}
         </div>

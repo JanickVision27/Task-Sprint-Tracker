@@ -3,9 +3,13 @@ package com.tracker.backend.service;
 import com.tracker.backend.dto.CreateProjectRequest;
 import com.tracker.backend.dto.ProjectResponse;
 import com.tracker.backend.repository.ProjectRepository;
+import com.tracker.backend.repository.SprintRepository;
+import com.tracker.backend.repository.TaskRepository;
+import com.tracker.backend.repository.CommentRepository;
 import com.tracker.backend.entity.Project;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -13,9 +17,15 @@ import java.util.stream.Collectors;
 @Service
 public class ProjectService {
     private final ProjectRepository projectRepository;
+    private final SprintRepository sprintRepository;
+    private final TaskRepository taskRepository;
+    private final CommentRepository commentRepository;
 
-    public ProjectService(ProjectRepository projectRepository) {
+    public ProjectService(ProjectRepository projectRepository, SprintRepository sprintRepository, TaskRepository taskRepository, CommentRepository commentRepository) {
         this.projectRepository = projectRepository;
+        this.sprintRepository = sprintRepository;
+        this.taskRepository = taskRepository;
+        this.commentRepository = commentRepository;
     }
 
     // 1. CREATE
@@ -59,11 +69,18 @@ public class ProjectService {
     }
 
     // 5. DELETE
+    @Transactional
     public void deleteProject(Long id) {
-        if (!projectRepository.existsById(id)) {
-            throw new EntityNotFoundException("Project not found with id: " + id);
-        }
-        projectRepository.deleteById(id);
+        Project project = projectRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Project not found with id: " + id));
+        var sprints = sprintRepository.findByProjectId(id);
+        sprints.forEach(sprint -> {
+            var tasks = taskRepository.findBySprintId(sprint.getId());
+            tasks.forEach(task -> commentRepository.deleteAll(commentRepository.findByTaskId(task.getId())));
+            taskRepository.deleteAll(tasks);
+        });
+        sprintRepository.deleteAll(sprints);
+        projectRepository.delete(project);
     }
 
     // --- HELPER METHOD: Converts Entity to DTO ---

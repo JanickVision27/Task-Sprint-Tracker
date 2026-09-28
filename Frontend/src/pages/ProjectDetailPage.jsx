@@ -39,6 +39,11 @@ export default function ProjectDetailPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id) => sprintApi.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sprints', projectId] }),
+  });
+
   function handleCreateSubmit(e) {
     e.preventDefault();
     createMutation.mutate({ ...newSprint, name: newSprint.name.trim() });
@@ -65,8 +70,21 @@ export default function ProjectDetailPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {sprints?.map(sprint => (
-          <div key={sprint.id} className="bg-white p-6 rounded-lg shadow cursor-pointer hover:shadow-lg transition border-l-4 border-blue-500"
+          <div key={sprint.id} className="bg-white p-6 rounded-lg shadow cursor-pointer hover:shadow-lg transition border-l-4 border-blue-500 relative group"
             onClick={() => navigate(`/board/${sprint.id}`)}>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                if (window.confirm('Delete this sprint and all its tasks?')) {
+                  deleteMutation.mutate(sprint.id);
+                }
+              }}
+              aria-label={`Delete ${sprint.name}`}
+              className="absolute top-2 right-2 text-gray-300 hover:text-red-600 opacity-0 group-hover:opacity-100 transition font-bold"
+            >
+              ×
+            </button>
             <h3 className="text-xl font-semibold">{sprint.name}</h3>
             <p className="text-sm text-gray-400 mt-2">
               {sprint.startDate} → {sprint.endDate}

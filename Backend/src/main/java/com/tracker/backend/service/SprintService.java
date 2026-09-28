@@ -6,8 +6,11 @@ import com.tracker.backend.entity.Project;
 import com.tracker.backend.entity.Sprint;
 import com.tracker.backend.repository.ProjectRepository;
 import com.tracker.backend.repository.SprintRepository;
+import com.tracker.backend.repository.TaskRepository;
+import com.tracker.backend.repository.CommentRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,11 +26,15 @@ public class SprintService {
     // ! If we don't check first, we might link a Sprint to a missing Project, which
     // breaks the database rules.
     private final ProjectRepository projectRepository;
+    private final TaskRepository taskRepository;
+    private final CommentRepository commentRepository;
 
     // * Spring automatically gives us our database tools when the app starts.
-    public SprintService(SprintRepository sprintRepository, ProjectRepository projectRepository) {
+    public SprintService(SprintRepository sprintRepository, ProjectRepository projectRepository, TaskRepository taskRepository, CommentRepository commentRepository) {
         this.sprintRepository = sprintRepository;
         this.projectRepository = projectRepository;
+        this.taskRepository = taskRepository;
+        this.commentRepository = commentRepository;
 
     }
 
@@ -94,13 +101,19 @@ public class SprintService {
     }
 
     // 5. DELETE
+    @Transactional
     public void deleteSprint(Long id) {
         // ! We check if it exists first. If we skip this, deleting a missing item
         // causes an ugly system error. This gives a clean "Not Found" message instead.
         if (!sprintRepository.existsById(id)) {
             throw new EntityNotFoundException("Sprint not found with id: " + id);
         }
-        sprintRepository.deleteById(id);
+        Sprint sprint = sprintRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Sprint not found with id: " + id));
+        var tasks = taskRepository.findBySprintId(id);
+        tasks.forEach(task -> commentRepository.deleteAll(commentRepository.findByTaskId(task.getId())));
+        taskRepository.deleteAll(tasks);
+        sprintRepository.delete(sprint);
     }
 
     // --- HELPER METHOD: Converts Entity to DTO ---

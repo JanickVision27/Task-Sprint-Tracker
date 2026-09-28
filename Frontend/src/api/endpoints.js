@@ -11,12 +11,14 @@ export const projectApi = {
   getAll: () => api.get('/projects'),
   create: (data) => api.post('/projects', data),
   getById: (id) => api.get(`/projects/${id}`),
+  delete: (id) => api.delete(`/projects/${id}`),
 };
 
 // Sprints
 export const sprintApi = {
   getAll: (projectId) => api.get(`/sprints/project/${projectId}`),
   create: (data) => api.post('/sprints', data),
+  delete: (id) => api.delete(`/sprints/${id}`),
 };
 
 // Tasks

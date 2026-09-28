@@ -2,7 +2,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import TaskCard from './TaskCard';
 
-export default function BoardColumn({ status, tasks, activeId }) {
+export default function BoardColumn({ status, tasks }) {
   // Set up this column as a "Droppable" area. Its ID is the status (e.g., "TODO")
   const { setNodeRef, isOver } = useDroppable({ id: status });
 

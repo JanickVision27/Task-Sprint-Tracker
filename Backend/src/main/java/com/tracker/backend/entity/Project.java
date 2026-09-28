@@ -6,6 +6,8 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity // This refers to Database Table not a Normal Class
 @Table(name = "projects") // Name of the table project
@@ -34,6 +36,9 @@ public class Project {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Sprint> sprints = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {
