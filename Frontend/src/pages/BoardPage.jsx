@@ -13,7 +13,6 @@ export default function BoardPage() {
   const { sprintId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeId, setActiveId] = useState(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newTask, setNewTask] = useState({
     title: '', description: '', status: 'TODO', priority: 'MEDIUM',
@@ -67,10 +66,8 @@ export default function BoardPage() {
   const sensors = useSensors(useSensor(PointerSensor, { activationDistance: 10 }));
 
   // Handle dropping a task
-  // Handle dropping a task
   function handleDragEnd(event) {
     const { active, over } = event;
-    setActiveId(null);
 
     if (!over) return; // Dropped outside
 
@@ -116,7 +113,6 @@ export default function BoardPage() {
 
       <DndContext 
         sensors={sensors} 
-        onDragStart={(e) => setActiveId(e.active.id)} 
         onDragEnd={handleDragEnd}
       >
         <div className="flex gap-6 flex-1 overflow-x-auto">
