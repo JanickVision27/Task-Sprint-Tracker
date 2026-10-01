@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+// * @Service marks this class as the business-logic layer for Sprints.
 @Service
 public class SprintService {
 
@@ -24,6 +25,7 @@ public class SprintService {
     private final TaskRepository taskRepository;
     private final CommentRepository commentRepository;
 
+    // * Constructor Injection: Spring automatically provides the repositories when starting up.
     public SprintService(SprintRepository sprintRepository, ProjectRepository projectRepository, TaskRepository taskRepository, CommentRepository commentRepository) {
         this.sprintRepository = sprintRepository;
         this.projectRepository = projectRepository;
@@ -31,10 +33,12 @@ public class SprintService {
         this.commentRepository = commentRepository;
     }
 
-    // 1. Create
+    // 1. CREATE SPRINT
     public SprintResponse createSprint(CreateSprintRequest request) {
+        // * Business Rule Check: Ensure the sprint's endDate is not earlier than its startDate
         validateSprintDates(request.getStartDate(), request.getEndDate());
 
+        // * Verify the parent Project exists before linking a Sprint to it
         Project project = projectRepository.findById(request.getProjectId())
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Project not found with id: " + request.getProjectId()));
@@ -49,7 +53,7 @@ public class SprintService {
         return mapToResponse(savedSprint);
     }
 
-    // 2. Read ALL Sprints For a Specific Project
+    // 2. READ ALL SPRINTS FOR A PROJECT
     public List<SprintResponse> getSprintsByProject(Long projectId) {
         return sprintRepository.findByProjectId(projectId)
                 .stream()
@@ -57,7 +61,7 @@ public class SprintService {
                 .collect(Collectors.toList());
     }
 
-    // 3. READ ONE SPRINT
+    // 3. READ ONE SPRINT BY ID
     public SprintResponse getSprintById(Long id) {
         Sprint sprint = sprintRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
@@ -66,8 +70,9 @@ public class SprintService {
         return mapToResponse(sprint);
     }
 
-    // 4. UPDATE
+    // 4. UPDATE SPRINT
     public SprintResponse updateSprint(Long id, CreateSprintRequest request) {
+        // * Business Rule Check: Ensure updated dates are still logical
         validateSprintDates(request.getStartDate(), request.getEndDate());
 
         Sprint sprint = sprintRepository.findById(id)
@@ -82,7 +87,9 @@ public class SprintService {
         return mapToResponse(updatedSprint);
     }
 
-    // 5. DELETE
+    // 5. DELETE SPRINT (with Cascade Cleanup)
+    // * @Transactional ensures that deleting comments, tasks, and the sprint happens as one unit:
+    // * if anything fails midway, the database rolls back so no partial data is left behind.
     @Transactional
     public void deleteSprint(Long id) {
         if (!sprintRepository.existsById(id)) {
@@ -90,12 +97,15 @@ public class SprintService {
         }
         Sprint sprint = sprintRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Sprint not found with id: " + id));
+
+        // First delete comments on each task, then the tasks, then the sprint itself
         var tasks = taskRepository.findBySprintId(id);
         tasks.forEach(task -> commentRepository.deleteAll(commentRepository.findByTaskId(task.getId())));
         taskRepository.deleteAll(tasks);
         sprintRepository.delete(sprint);
     }
 
+    // --- BUSINESS RULE HELPER: Prevents endDate from being earlier than startDate ---
     private void validateSprintDates(LocalDateTime startDate, LocalDateTime endDate) {
         if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
             throw new IllegalArgumentException("Sprint end date cannot be earlier than start date");
