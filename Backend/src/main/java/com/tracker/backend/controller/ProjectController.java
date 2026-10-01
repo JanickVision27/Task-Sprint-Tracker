@@ -6,13 +6,13 @@ import com.tracker.backend.service.ProjectService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/projects")
-
 public class ProjectController {
 
     private final ProjectService projectService;
@@ -44,17 +44,18 @@ public class ProjectController {
 
     // UPDATE
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ProjectResponse> updateProject(@PathVariable Long id,
             @Valid @RequestBody CreateProjectRequest request) {
         ProjectResponse response = projectService.updateProject(id, request);
         return ResponseEntity.ok(response);
     }
 
-    // DELETE
+    // DELETE - Restricted to ADMIN and MANAGER roles
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<Void> deleteProject(@PathVariable Long id) {
         projectService.deleteProject(id);
         return ResponseEntity.noContent().build();
     }
-
 }

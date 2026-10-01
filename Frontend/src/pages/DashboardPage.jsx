@@ -49,7 +49,14 @@ export default function DashboardPage() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">My Projects</h1>
         <div className="flex items-center gap-4">
-          <span className="text-gray-600">Hello, {user?.name || user?.email}</span>
+          <span className="text-gray-600">
+            Hello, {user?.name || user?.email}
+            {user?.role && (
+              <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-semibold">
+                {user.role}
+              </span>
+            )}
+          </span>
           <button onClick={logout} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
             Logout
           </button>

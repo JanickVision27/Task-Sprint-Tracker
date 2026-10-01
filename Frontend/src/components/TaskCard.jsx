@@ -3,12 +3,20 @@ import { CSS } from '@dnd-kit/utilities';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { taskApi } from '../api/endpoints';
+import { useAuth } from '../context/AuthContext';
 
 export default function TaskCard({ task }) {
   const { sprintId } = useParams();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+
   const deleteMutation = useMutation({
     mutationFn: () => taskApi.delete(task.id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks', sprintId] }),
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: () => taskApi.update(task.id, { ...task, assigneeId: user?.id || 1 }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks', sprintId] }),
   });
 
@@ -51,7 +59,23 @@ export default function TaskCard({ task }) {
         {task.description && <p className="text-sm text-gray-500 mt-1 line-clamp-2">{task.description}</p>}
         <div className="mt-3 flex justify-between items-center text-xs">
           <span className="bg-gray-100 px-2 py-1 rounded">{task.priority}</span>
-          {task.assigneeId && <span className="text-gray-400">Assigned</span>}
+          {task.assigneeId ? (
+            <span className="text-green-700 bg-green-50 px-2 py-0.5 rounded">
+              Assigned (#{task.assigneeId})
+            </span>
+          ) : (
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                assignMutation.mutate();
+              }}
+              className="text-blue-600 hover:underline font-medium"
+            >
+              + Assign to me
+            </button>
+          )}
         </div>
       </div>
     </div>

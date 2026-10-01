@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../api/endpoints';
 
 export default function RegisterPage() {
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'MANAGER' });
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -32,7 +32,18 @@ export default function RegisterPage() {
         <input name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange}
           className="w-full p-2 mb-4 border rounded" required />
         <input name="password" type="password" placeholder="Password" value={form.password} onChange={handleChange}
-          className="w-full p-2 mb-6 border rounded" required />
+          className="w-full p-2 mb-4 border rounded" required />
+        <label className="block text-sm text-gray-600 mb-1">Role</label>
+        <select
+          name="role"
+          value={form.role}
+          onChange={handleChange}
+          className="w-full p-2 mb-6 border rounded bg-white"
+        >
+          <option value="MANAGER">Manager (Create & manage sprints/tasks)</option>
+          <option value="ADMIN">Admin (Full access)</option>
+          <option value="MEMBER">Member (Move & update own tasks)</option>
+        </select>
         <button type="submit" className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700">
           Register
         </button>

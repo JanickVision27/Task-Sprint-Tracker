@@ -6,6 +6,7 @@ import { taskApi } from '../api/endpoints';
 import BoardColumn from '../components/BoardColumn';
 import Modal from '../components/Modal';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { useAuth } from '../context/AuthContext';
 
 const STATUSES = ['TODO', 'IN_PROGRESS', 'DONE'];
 
@@ -13,7 +14,10 @@ export default function BoardPage() {
   const { sprintId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [boardError, setBoardError] = useState('');
+  const [assignToMe, setAssignToMe] = useState(true);
   const [newTask, setNewTask] = useState({
     title: '', description: '', status: 'TODO', priority: 'MEDIUM',
   });
@@ -32,6 +36,7 @@ export default function BoardPage() {
     mutationFn: ({ id, ...data }) => taskApi.update(id, data),
     // Optimistic update: UI moves instantly, then syncs with DB
     onMutate: async (updatedTask) => {
+      setBoardError('');
       await queryClient.cancelQueries({ queryKey: ['tasks', sprintId] });
       const previousTasks = queryClient.getQueryData(['tasks', sprintId]);
       
@@ -41,7 +46,10 @@ export default function BoardPage() {
       return { previousTasks };
     },
     onError: (err, variables, context) => {
-      queryClient.setQueryData(['tasks', sprintId], context.previousTasks);
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['tasks', sprintId], context.previousTasks);
+      }
+      setBoardError(err.response?.data?.message || 'Unable to update task.');
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', sprintId] });
@@ -49,11 +57,20 @@ export default function BoardPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => taskApi.create({ ...data, sprintId: Number(sprintId) }),
+    mutationFn: (data) => taskApi.create({
+      ...data,
+      sprintId: Number(sprintId),
+      assigneeId: assignToMe ? (user?.id || 1) : null,
+    }),
     onSuccess: () => {
+      setBoardError('');
       queryClient.invalidateQueries({ queryKey: ['tasks', sprintId] });
       setIsCreateOpen(false);
       setNewTask({ title: '', description: '', status: 'TODO', priority: 'MEDIUM' });
+      setAssignToMe(true);
+    },
+    onError: (err) => {
+      setBoardError(err.response?.data?.message || 'Unable to create task.');
     },
   });
 
@@ -101,7 +118,7 @@ export default function BoardPage() {
       <button onClick={() => navigate(-1)} className="mb-6 text-blue-600 hover:underline self-start">
         ← Back to Sprints
       </button>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Sprint Board</h1>
         <button
           onClick={() => setIsCreateOpen(true)}
@@ -110,6 +127,13 @@ export default function BoardPage() {
           + New Task
         </button>
       </div>
+
+      {boardError && (
+        <div className="mb-6 bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-lg flex justify-between items-center">
+          <span>{boardError}</span>
+          <button onClick={() => setBoardError('')} className="text-red-500 font-bold ml-4">×</button>
+        </div>
+      )}
 
       <DndContext 
         sensors={sensors} 
@@ -151,6 +175,14 @@ export default function BoardPage() {
             <option value="MEDIUM">Medium</option>
             <option value="HIGH">High</option>
           </select>
+          <label className="flex items-center gap-2 text-sm text-gray-700 mb-4 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={assignToMe}
+              onChange={(event) => setAssignToMe(event.target.checked)}
+            />
+            Assign task to me (required before moving to DONE)
+          </label>
           <button type="submit" disabled={createMutation.isPending} className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700 disabled:opacity-50">
             {createMutation.isPending ? 'Creating…' : 'Create Task'}
           </button>

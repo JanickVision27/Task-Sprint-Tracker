@@ -49,9 +49,16 @@ public class AuthService {
         }
 
         // 5. Save to database
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
-        return new AuthResponse("User registered successfully!");
+        AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo(
+                savedUser.getId(),
+                savedUser.getName(),
+                savedUser.getEmail(),
+                savedUser.getRole()
+        );
+
+        return new AuthResponse("User registered successfully!", null, userInfo);
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -71,7 +78,14 @@ public class AuthService {
         // 3. Generate the JWT "keycard" for this user
         String jwtToken = jwtService.generateToken(user.getEmail());
 
-        // 4. Return the token to the frontend
-        return new AuthResponse("Login successful!", jwtToken);
+        AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getRole()
+        );
+
+        // 4. Return the token and user details to the frontend
+        return new AuthResponse("Login successful!", jwtToken, userInfo);
     }
 }
