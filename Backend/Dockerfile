@@ -18,5 +18,5 @@ COPY --from=build /app/target/backend-0.0.1-SNAPSHOT.jar app.jar
 ENV PORT=8080
 EXPOSE ${PORT}
 
-# Start the Java app
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Start the Java app with fast-startup JVM flags optimized for Render's 0.1-CPU / 512MB Free Tier
+ENTRYPOINT ["java", "-XX:TieredStopAtLevel=1", "-XX:+UseSerialGC", "-Xss512k", "-Dspring.jmx.enabled=false", "-jar", "app.jar"]

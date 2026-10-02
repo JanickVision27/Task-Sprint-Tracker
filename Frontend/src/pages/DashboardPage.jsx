@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { projectApi } from '../api/endpoints';
 import Modal from '../components/Modal';
+import RoleGuideButton from '../components/RoleGuideModal';
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
@@ -52,7 +53,8 @@ export default function DashboardPage() {
             <span className="font-semibold text-slate-900 text-lg">Task & Sprint Tracker</span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <RoleGuideButton />
             <div className="text-sm text-slate-600 flex items-center gap-2">
               <span className="font-medium text-slate-800">{user?.name || user?.email}</span>
               {user?.role && (

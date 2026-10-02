@@ -1,15 +1,39 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { authApi } from '../api/endpoints';
+import { authApi, healthApi } from '../api/endpoints';
+import RoleGuideButton from '../components/RoleGuideModal';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [serverAwake, setServerAwake] = useState(null); // null = checking, true = awake, false = waking
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Wake up Render free-tier server immediately when user opens the Login page
+  useEffect(() => {
+    let active = true;
+    const timer = setTimeout(() => {
+      if (active && serverAwake === null) setServerAwake(false);
+    }, 2000);
+
+    healthApi
+      .check()
+      .then(() => {
+        if (active) setServerAwake(true);
+      })
+      .catch(() => {
+        if (active) setServerAwake(false);
+      });
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [serverAwake]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -20,7 +44,11 @@ export default function LoginPage() {
       login(res.data.token, res.data.user || { email });
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid email or password');
+      if (!err.response) {
+        setError('Server is still waking up on Render Free Tier. Please wait ~20 seconds and click Sign In again.');
+      } else {
+        setError(err.response?.data?.message || 'Invalid email or password');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -30,12 +58,31 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-md">
         {/* Brand Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 text-white font-bold text-xl shadow-sm mb-3">
             ST
           </div>
           <h1 className="text-2xl font-bold text-slate-900">Task & Sprint Tracker</h1>
           <p className="text-sm text-slate-500 mt-1">Sign in to manage your projects and Kanban boards</p>
+        </div>
+
+        {/* Server Status / Role Guide Bar */}
+        <div className="flex items-center justify-between mb-3 px-1">
+          <div>
+            {serverAwake === true && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                Backend Online
+              </span>
+            )}
+            {serverAwake === false && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                Waking up free Render server (~30s)...
+              </span>
+            )}
+          </div>
+          <RoleGuideButton />
         </div>
 
         {/* Card */}

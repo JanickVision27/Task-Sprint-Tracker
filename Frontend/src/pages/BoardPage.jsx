@@ -7,6 +7,7 @@ import BoardColumn from '../components/BoardColumn';
 import Modal from '../components/Modal';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useAuth } from '../context/AuthContext';
+import RoleGuideButton from '../components/RoleGuideModal';
 
 const STATUSES = ['TODO', 'IN_PROGRESS', 'DONE'];
 
@@ -127,7 +128,8 @@ export default function BoardPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <RoleGuideButton />
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               Live Sync

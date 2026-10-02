@@ -1,12 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { authApi } from '../api/endpoints';
+import { authApi, healthApi } from '../api/endpoints';
+import RoleGuideButton from '../components/RoleGuideModal';
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'MANAGER' });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Wake up Render container on page load
+  useEffect(() => {
+    healthApi.check().catch(() => {});
+  }, []);
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -20,7 +26,11 @@ export default function RegisterPage() {
       await authApi.register(form);
       navigate('/login');
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
+      if (!err.response) {
+        setError('Server is waking up on Render Free Tier. Please wait ~20 seconds and try again.');
+      } else {
+        setError(err.response?.data?.message || 'Registration failed');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -30,7 +40,7 @@ export default function RegisterPage() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-4 py-8">
       <div className="w-full max-w-md">
         {/* Brand Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 text-white font-bold text-xl shadow-sm mb-3">
             ST
           </div>
@@ -88,7 +98,10 @@ export default function RegisterPage() {
           </div>
 
           <div className="mb-6">
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Team Role</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-sm font-medium text-slate-700">Team Role</label>
+              <RoleGuideButton compact />
+            </div>
             <select
               name="role"
               value={form.role}

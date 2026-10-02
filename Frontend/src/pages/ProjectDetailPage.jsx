@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { projectApi, sprintApi } from '../api/endpoints';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal';
+import RoleGuideButton from '../components/RoleGuideModal';
 
 function formatSprintDate(dateString) {
   if (!dateString) return 'N/A';
@@ -80,7 +81,8 @@ export default function ProjectDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <RoleGuideButton />
             <span className="text-sm font-medium text-slate-700 hidden sm:inline">
               {user?.name || user?.email}
             </span>

@@ -1,5 +1,10 @@
 import api from './client';
 
+// Health check (wakes up Render container when user visits Login/Register)
+export const healthApi = {
+  check: () => api.get('/health'),
+};
+
 // Auth
 export const authApi = {
   login: (email, password) => api.post('/auth/login', { email, password }),
