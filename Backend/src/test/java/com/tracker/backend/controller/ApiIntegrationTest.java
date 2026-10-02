@@ -36,6 +36,14 @@ class ApiIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    // Test 0: Public /api/health endpoint returns 200 OK with status UP (used by Render health check)
+    @Test
+    void healthCheck_PublicEndpoint_ReturnsUp() throws Exception {
+        mockMvc.perform(get("/api/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"));
+    }
+
     // Test 1: Public /api/auth/register endpoint creates a new user and returns 200 OK
     @Test
     void registerUser_PublicEndpoint_ReturnsOk() throws Exception {
