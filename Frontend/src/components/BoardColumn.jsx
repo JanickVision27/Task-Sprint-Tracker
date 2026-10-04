@@ -20,7 +20,7 @@ const COLUMN_META = {
   },
 };
 
-export default function BoardColumn({ status, tasks, users, onError, onSuccess }) {
+export default function BoardColumn({ status, tasks, users, onEdit, onError, onSuccess }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const meta = COLUMN_META[status] || {
     label: status,
@@ -54,6 +54,7 @@ export default function BoardColumn({ status, tasks, users, onError, onSuccess }
               key={task.id}
               task={task}
               users={users}
+              onEdit={onEdit}
               onError={onError}
               onSuccess={onSuccess}
             />

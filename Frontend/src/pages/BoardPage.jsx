@@ -17,6 +17,7 @@ export default function BoardPage() {
   const queryClient = useQueryClient();
   const { user, logout } = useAuth();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
   const [boardError, setBoardError] = useState('');
   const [boardSuccess, setBoardSuccess] = useState('');
   const [assigneeId, setAssigneeId] = useState(
@@ -77,6 +78,20 @@ export default function BoardPage() {
     },
   });
 
+  // Mutation for saving edits from the Edit Task modal
+  const editTaskMutation = useMutation({
+    mutationFn: ({ id, ...data }) => taskApi.update(id, data),
+    onSuccess: () => {
+      setBoardError('');
+      setBoardSuccess('Task details updated successfully!');
+      queryClient.invalidateQueries({ queryKey: ['tasks', sprintId] });
+      setEditingTask(null);
+    },
+    onError: (err) => {
+      setBoardError(err.response?.data?.message || 'Unable to update task details.');
+    },
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) =>
       taskApi.create({
@@ -99,6 +114,20 @@ export default function BoardPage() {
   function handleCreateSubmit(event) {
     event.preventDefault();
     createMutation.mutate(newTask);
+  }
+
+  function handleEditSubmit(event) {
+    event.preventDefault();
+    if (!editingTask) return;
+    editTaskMutation.mutate({
+      id: editingTask.id,
+      title: editingTask.title.trim(),
+      description: editingTask.description || '',
+      priority: editingTask.priority,
+      status: editingTask.status,
+      sprintId: Number(sprintId),
+      assigneeId: editingTask.assigneeId ? Number(editingTask.assigneeId) : null,
+    });
   }
 
   const sensors = useSensors(useSensor(PointerSensor, { activationDistance: 10 }));
@@ -234,6 +263,12 @@ export default function BoardPage() {
                   status={status}
                   tasks={tasks?.filter((t) => t.status === status) || []}
                   users={users}
+                  onEdit={(taskToEdit) =>
+                    setEditingTask({
+                      ...taskToEdit,
+                      assigneeId: taskToEdit.assigneeId ? String(taskToEdit.assigneeId) : '',
+                    })
+                  }
                   onError={(msg) => setBoardError(msg)}
                   onSuccess={(msg) => setBoardSuccess(msg)}
                 />
@@ -328,6 +363,112 @@ export default function BoardPage() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Edit Task Modal (Managers & Admins) */}
+      <Modal
+        isOpen={Boolean(editingTask)}
+        onClose={() => setEditingTask(null)}
+        title="Edit Task Details"
+      >
+        {editingTask && (
+          <form onSubmit={handleEditSubmit}>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Task Title</label>
+              <input
+                value={editingTask.title}
+                onChange={(event) =>
+                  setEditingTask({ ...editingTask, title: event.target.value })
+                }
+                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                required
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                Description
+              </label>
+              <textarea
+                rows={3}
+                value={editingTask.description || ''}
+                onChange={(event) =>
+                  setEditingTask({ ...editingTask, description: event.target.value })
+                }
+                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Priority</label>
+                <select
+                  value={editingTask.priority || 'MEDIUM'}
+                  onChange={(event) =>
+                    setEditingTask({ ...editingTask, priority: event.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="LOW">Low</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="HIGH">High</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Status</label>
+                <select
+                  value={editingTask.status || 'TODO'}
+                  onChange={(event) =>
+                    setEditingTask({ ...editingTask, status: event.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="TODO">To Do</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="DONE">Done</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                Assign To Team Member
+              </label>
+              <select
+                value={editingTask.assigneeId}
+                onChange={(event) =>
+                  setEditingTask({ ...editingTask, assigneeId: event.target.value })
+                }
+                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">Unassigned</option>
+                {memberUsers.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.name} ({member.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setEditingTask(null)}
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={editTaskMutation.isPending}
+                className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-60 cursor-pointer"
+              >
+                {editTaskMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </form>
+        )}
       </Modal>
     </div>
   );

@@ -20,7 +20,7 @@ const PRIORITY_STYLES = {
   },
 };
 
-export default function TaskCard({ task, users = [], onError, onSuccess }) {
+export default function TaskCard({ task, users = [], onEdit, onError, onSuccess }) {
   const { sprintId } = useParams();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -82,20 +82,40 @@ export default function TaskCard({ task, users = [], onError, onSuccess }) {
       style={style}
       className={`bg-white p-4 rounded-xl border border-slate-200 border-l-4 ${priorityStyle.border} shadow-2xs hover:shadow-md transition relative group`}
     >
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          if (window.confirm('Delete this task?')) deleteMutation.mutate();
-        }}
-        aria-label={`Delete ${task.title}`}
-        className="absolute top-3 right-3 text-slate-300 hover:text-red-600 opacity-0 group-hover:opacity-100 transition text-lg leading-none p-1"
-      >
-        &times;
-      </button>
+      {/* Card Action Buttons (Edit for Manager/Admin + Delete) */}
+      <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+        {isManagerOrAdmin && (
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              onEdit?.(task);
+            }}
+            aria-label={`Edit ${task.title}`}
+            title="Edit task details"
+            className="text-slate-400 hover:text-indigo-600 text-xs font-medium px-1.5 py-0.5 rounded hover:bg-indigo-50 transition cursor-pointer"
+          >
+            Edit
+          </button>
+        )}
+        <button
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            if (window.confirm('Delete this task?')) deleteMutation.mutate();
+          }}
+          aria-label={`Delete ${task.title}`}
+          title="Delete task"
+          className="text-slate-300 hover:text-red-600 text-lg leading-none px-1 cursor-pointer"
+        >
+          &times;
+        </button>
+      </div>
 
       <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
-        <h3 className="font-semibold text-sm text-slate-800 pr-5">{task.title}</h3>
+        <h3 className="font-semibold text-sm text-slate-800 pr-14">{task.title}</h3>
         {task.description && (
           <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">
             {task.description}
