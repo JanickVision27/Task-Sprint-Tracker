@@ -9,6 +9,7 @@ const ROLES = [
     canDo: [
       'Only role that can create, edit, and delete Projects',
       'Full access to all Sprints and Tasks',
+      'Can assign tasks to Members and approve finished tasks in Done',
     ],
   },
   {
@@ -17,8 +18,8 @@ const ROLES = [
     badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
     canDo: [
       'Create, edit, and delete Sprints (cannot create or delete Projects)',
-      'Create tasks and assign them to team members',
-      'Move and manage any task on the board',
+      'Create tasks and assign them to Member accounts',
+      'Notified when a Member moves a task to Done — clicks "✓ Approve & Finish" to complete & remove the task',
     ],
   },
   {
@@ -27,9 +28,9 @@ const ROLES = [
     badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     canDo: [
       'View Projects and Sprints',
-      'Claim unassigned tasks (+ Assign to me)',
-      'Move and update only tasks assigned to themselves',
-      'Cannot create or delete Projects or Sprints',
+      'Claim unassigned tasks (+ Assign to me) and move their own tasks to In Progress & Done',
+      'Moving a task to Done notifies the Manager for final approval',
+      'Cannot create/delete Projects or Sprints, or move another teammate’s task',
     ],
   },
 ];
@@ -93,7 +94,12 @@ export default function RoleGuideButton({ compact = false }) {
             <ul className="text-xs text-amber-800 space-y-1 pl-4 list-disc">
               <li>
                 <strong>Assignee Required for DONE:</strong> A task cannot be moved to{' '}
-                <strong>Done</strong> unless it is assigned to someone.
+                <strong>Done</strong> unless a Member is assigned to it.
+              </li>
+              <li>
+                <strong>Manager Approval on DONE:</strong> When a Member moves a task to{' '}
+                <strong>Done</strong>, the Manager receives a notification banner and clicks{' '}
+                <strong>✓ Approve &amp; Finish</strong> to complete and remove the task.
               </li>
               <li>
                 <strong>Sprint Dates:</strong> A sprint’s end date cannot be earlier than its

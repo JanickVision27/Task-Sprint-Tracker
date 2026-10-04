@@ -18,7 +18,10 @@ export default function BoardPage() {
   const { user, logout } = useAuth();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [boardError, setBoardError] = useState('');
-  const [assigneeId, setAssigneeId] = useState(user?.id ? String(user.id) : '');
+  const [boardSuccess, setBoardSuccess] = useState('');
+  const [assigneeId, setAssigneeId] = useState(
+    user?.role === 'MEMBER' && user?.id ? String(user.id) : ''
+  );
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -38,10 +41,16 @@ export default function BoardPage() {
     queryFn: () => userApi.getAll().then((res) => res.data),
   });
 
+  // Filter only users with the MEMBER role for task assignment
+  const memberUsers = users.filter((candidate) => candidate.role === 'MEMBER');
+  const doneTasks = tasks?.filter((t) => t.status === 'DONE') || [];
+  const isManagerOrAdmin = user?.role === 'MANAGER' || user?.role === 'ADMIN';
+
   const updateMutation = useMutation({
     mutationFn: ({ id, ...data }) => taskApi.update(id, data),
     onMutate: async (updatedTask) => {
       setBoardError('');
+      setBoardSuccess('');
       await queryClient.cancelQueries({ queryKey: ['tasks', sprintId] });
       const previousTasks = queryClient.getQueryData(['tasks', sprintId]);
 
@@ -49,6 +58,13 @@ export default function BoardPage() {
         old?.map((t) => (t.id === updatedTask.id ? { ...t, ...updatedTask } : t))
       );
       return { previousTasks };
+    },
+    onSuccess: (res, variables) => {
+      if (variables.status === 'DONE' && user?.role === 'MEMBER') {
+        setBoardSuccess(
+          `Task "${variables.title}" moved to Done! Your manager has been notified to review and approve it.`
+        );
+      }
     },
     onError: (err, variables, context) => {
       if (context?.previousTasks) {
@@ -73,7 +89,7 @@ export default function BoardPage() {
       queryClient.invalidateQueries({ queryKey: ['tasks', sprintId] });
       setIsCreateOpen(false);
       setNewTask({ title: '', description: '', status: 'TODO', priority: 'MEDIUM' });
-      setAssigneeId(user?.id ? String(user.id) : '');
+      setAssigneeId(user?.role === 'MEMBER' && user?.id ? String(user.id) : '');
     },
     onError: (err) => {
       setBoardError(err.response?.data?.message || 'Unable to create task.');
@@ -166,8 +182,37 @@ export default function BoardPage() {
           </button>
         </div>
 
+        {/* Manager Notification Banner when tasks are in DONE awaiting approval */}
+        {isManagerOrAdmin && doneTasks.length > 0 && (
+          <div className="mb-5 bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded-xl text-sm flex items-center justify-between shadow-2xs">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping shrink-0" />
+              <span>
+                <strong>Manager Review Needed:</strong> {doneTasks.length}{' '}
+                {doneTasks.length === 1 ? 'task has' : 'tasks have'} been moved to{' '}
+                <strong>Done</strong>. Click <strong>&ldquo;✓ Approve &amp; Finish&rdquo;</strong>{' '}
+                on the Done card to verify completion and remove it from the board.
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Success Toast Banner */}
+        {boardSuccess && (
+          <div className="mb-5 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-sm flex justify-between items-center">
+            <span>{boardSuccess}</span>
+            <button
+              onClick={() => setBoardSuccess('')}
+              className="text-emerald-600 hover:text-emerald-800 font-bold ml-4 text-lg leading-none"
+            >
+              &times;
+            </button>
+          </div>
+        )}
+
+        {/* Error Alert Banner */}
         {boardError && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex justify-between items-center">
+          <div className="mb-5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex justify-between items-center">
             <span>{boardError}</span>
             <button
               onClick={() => setBoardError('')}
@@ -190,6 +235,7 @@ export default function BoardPage() {
                   tasks={tasks?.filter((t) => t.status === status) || []}
                   users={users}
                   onError={(msg) => setBoardError(msg)}
+                  onSuccess={(msg) => setBoardSuccess(msg)}
                 />
               ))}
             </div>
@@ -238,8 +284,11 @@ export default function BoardPage() {
           </div>
 
           <div className="mb-6">
-            <label htmlFor="task-assignee" className="block text-sm font-medium text-slate-700 mb-1.5">
-              Assign To
+            <label
+              htmlFor="task-assignee"
+              className="block text-sm font-medium text-slate-700 mb-1.5"
+            >
+              Assign To Team Member
             </label>
             <select
               id="task-assignee"
@@ -248,12 +297,18 @@ export default function BoardPage() {
               className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
               <option value="">Unassigned</option>
-              {users.map((assignedUser) => (
-                <option key={assignedUser.id} value={assignedUser.id}>
-                  {assignedUser.name} ({assignedUser.role})
+              {memberUsers.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name} ({member.email})
                 </option>
               ))}
             </select>
+            {memberUsers.length === 0 && (
+              <p className="text-xs text-amber-700 mt-1.5">
+                Tip: Register an account with the <strong>Member</strong> role so you can assign
+                tasks to team members here.
+              </p>
+            )}
           </div>
 
           <div className="flex justify-end gap-2">

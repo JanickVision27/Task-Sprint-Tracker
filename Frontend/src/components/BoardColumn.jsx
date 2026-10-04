@@ -20,7 +20,7 @@ const COLUMN_META = {
   },
 };
 
-export default function BoardColumn({ status, tasks, users, onError }) {
+export default function BoardColumn({ status, tasks, users, onError, onSuccess }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const meta = COLUMN_META[status] || {
     label: status,
@@ -50,7 +50,13 @@ export default function BoardColumn({ status, tasks, users, onError }) {
       <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
         <div className="flex flex-col gap-3 flex-1">
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} users={users} onError={onError} />
+            <TaskCard
+              key={task.id}
+              task={task}
+              users={users}
+              onError={onError}
+              onSuccess={onSuccess}
+            />
           ))}
 
           {tasks.length === 0 && (
