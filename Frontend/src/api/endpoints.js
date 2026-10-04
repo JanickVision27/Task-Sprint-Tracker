@@ -1,9 +1,19 @@
 import api from './client';
 
+// Health check (wakes up Render container when user visits Login/Register)
+export const healthApi = {
+  check: () => api.get('/health'),
+};
+
 // Auth
 export const authApi = {
   login: (email, password) => api.post('/auth/login', { email, password }),
   register: (data) => api.post('/auth/register', data),
+};
+
+// Users
+export const userApi = {
+  getAll: () => api.get('/users'),
 };
 
 // Projects

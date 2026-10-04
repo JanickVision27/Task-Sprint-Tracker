@@ -1,0 +1,35 @@
+# CircleCI Configuration for Task & Sprint Tracker
+version: 2.1
+
+jobs:
+  build-and-test:
+    docker:
+      # Official CircleCI image with OpenJDK 21 and Maven pre-installed
+      - image: cimg/openjdk:21.0
+    working_directory: ~/repo/Backend
+    steps:
+      - checkout:
+          path: ~/repo
+      # Cache Maven dependencies so builds run fast
+      - restore_cache:
+          keys:
+            - v1-maven-deps-{{ checksum "pom.xml" }}
+            - v1-maven-deps-
+      - run:
+          name: Download Dependencies
+          command: mvn -B dependency:go-offline
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: v1-maven-deps-{{ checksum "pom.xml" }}
+      - run:
+          name: Run Backend Unit & Integration Tests
+          command: mvn -B clean test
+      - run:
+          name: Package Spring Boot JAR
+          command: mvn -B package -DskipTests
+
+workflows:
+  backend-ci:
+    jobs:
+      - build-and-test
