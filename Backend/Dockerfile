@@ -2,7 +2,7 @@
 
 # Stage 1: build the executable Spring Boot JAR with Maven and a full JDK.
 # This stage is discarded, so Maven and compiler tools never enter the runtime image.
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3.9-eclipse-temurin-26 AS build
 WORKDIR /build
 
 # Copy the dependency manifest first. Docker can reuse the downloaded-dependency
