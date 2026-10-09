@@ -1,0 +1,96 @@
+# Run CI when changes are pushed to main.
+trigger:
+  branches:
+    include:
+      - main
+
+# Azure-hosted Ubuntu provides a clean Linux agent; Docker CLI is available there.
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  # Stable repository image name; Build.BuildId makes each pipeline image traceable.
+  IMAGE_NAME: 'task-sprint-tracker'
+  IMAGE_TAG: '$(Build.BuildId)'
+  # Pin the scanner version so the same Trivy release is used on each run.
+  TRIVY_VERSION: '0.70.0'
+
+stages:
+  # Compile/package and test the Java 21 backend before running container security checks.
+  - stage: Build
+    displayName: Build and test backend
+    jobs:
+      - job: BuildBackend
+        displayName: Maven build and tests
+        steps:
+          # Fetch the repository into this job's workspace before running build commands.
+          - checkout: self
+
+          # Select the preinstalled JDK 21 on the hosted Ubuntu agent to match pom.xml.
+          - task: JavaToolInstaller@0
+            displayName: Set up JDK 21
+            inputs:
+              versionSpec: '21'
+              jdkArchitectureOption: x64
+              jdkSourceOption: PreInstalled
+
+          # Package without executing tests here; the next step runs tests and publishes their results.
+          - script: mvn -B clean package -DskipTests
+            displayName: Maven clean package
+            workingDirectory: Backend
+
+          # Run tests separately so Azure can publish a clear JUnit test run.
+          - script: mvn -B test
+            displayName: Run Maven tests
+            workingDirectory: Backend
+
+          # Publish results even when the Maven test command fails, so failures are visible in Azure.
+          - task: PublishTestResults@2
+            displayName: Publish JUnit test results
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: JUnit
+              testResultsFiles: 'Backend/target/surefire-reports/TEST-*.xml'
+              searchFolder: '$(System.DefaultWorkingDirectory)'
+              mergeTestResults: true
+              failTaskOnFailedTests: true
+              testRunTitle: Backend Maven tests
+
+  # Scan the packaged backend image only after the build and tests have succeeded.
+  - stage: Security
+    displayName: Build and scan container image
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - job: ScanImage
+        displayName: Docker build and Trivy image scan
+        steps:
+          # Each Azure job can start on a fresh agent, so check out source for the Docker context.
+          - checkout: self
+
+          # Download a pinned Trivy release and verify its published SHA-256 before installing it.
+          - bash: |
+              set -euo pipefail
+              version="$(TRIVY_VERSION)"
+              package="trivy_${version}_Linux-64bit.deb"
+              checksums="trivy_${version}_checksums.txt"
+              release_url="https://github.com/aquasecurity/trivy/releases/download/v${version}"
+              download_dir="$(Agent.TempDirectory)/trivy"
+              mkdir -p "$download_dir"
+              curl --fail --silent --show-error --location "$release_url/$package" --output "$download_dir/$package"
+              curl --fail --silent --show-error --location "$release_url/$checksums" --output "$download_dir/$checksums"
+              expected_sha="$(awk -v filename="$package" '$2 == filename { print $1; exit }' "$download_dir/$checksums")"
+              test -n "$expected_sha"
+              printf '%s  %s\n' "$expected_sha" "$package" | (cd "$download_dir" && sha256sum --check --status)
+              sudo dpkg --install "$download_dir/$package"
+              trivy --version
+            displayName: Install and verify Trivy
+
+          # Use Backend as the build context so Backend/Dockerfile and Backend/.dockerignore apply.
+          - script: docker build --file Backend/Dockerfile --tag "$(IMAGE_NAME):$(IMAGE_TAG)" Backend
+            displayName: Build backend Docker image
+
+          # Report high/critical image findings without failing CI during initial adoption.
+          # Change --exit-code to 1 after establishing and enforcing the vulnerability baseline.
+          - script: trivy image --exit-code 0 --severity HIGH,CRITICAL "$(IMAGE_NAME):$(IMAGE_TAG)"
+            displayName: Trivy image scan (report only)
