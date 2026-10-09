@@ -1,6 +1,6 @@
 name: Backend CI and security
 
-# Validate changes before they reach main and again after a direct push to main.
+# Validate pull requests and main-branch commits; publishing to JFrog is separately gated below.
 on:
   push:
     branches:
@@ -9,43 +9,42 @@ on:
     branches:
       - main
 
-# Limit the workflow token to checkout, CodeQL result upload, and CodeQL run metadata.
+# Keep the workflow token limited to checkout, CodeQL uploads, and artifact access.
 permissions:
   contents: read
   security-events: write
   actions: read
 
 jobs:
-  # Build and test the backend first; the security jobs only run after this gate passes.
+  # Compile and test first; security scans do not run for a broken backend build.
   build:
     name: Maven build and tests
     runs-on: ubuntu-latest
     steps:
-      # Pin third-party actions to immutable commits; Dependabot can update these pins.
+      # Pin third-party actions to immutable commits; Dependabot can update these references.
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # pom.xml targets Java 21, so CI must use the same JDK (not Java 17).
+      # pom.xml targets Java 21, so use the matching JDK in CI.
       - name: Set up JDK 21
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
           java-version: '21'
           cache: maven
-          # Key the Maven cache on the backend dependency manifest.
+          # Key cached dependencies from the backend POM.
           cache-dependency-path: Backend/pom.xml
 
-      # Run from Backend because that directory contains the Maven project.
-      # verify compiles, runs tests, and packages the application.
+      # Run from Backend because it is the Maven project root.
       - name: Build and test backend
         working-directory: Backend
         run: mvn --batch-mode --no-transfer-progress clean verify
 
-  # Run CodeQL only after the backend build passes, to avoid analyzing broken code.
+  # CodeQL runs only after compilation/tests pass, avoiding analysis of broken revisions.
   codeql:
     name: CodeQL analysis
     needs: build
-    # Fork PR tokens cannot upload SARIF; still analyze pushes and same-repository PRs.
+    # Fork PRs receive a read-only token and cannot upload SARIF; pushes and same-repo PRs are analyzed.
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     steps:
@@ -54,7 +53,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # CodeQL's Java autobuild also needs the JDK version declared by the Maven project.
+      # CodeQL autobuild also needs the Java version declared by the Maven project.
       - name: Set up JDK 21 for CodeQL autobuild
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
@@ -63,8 +62,7 @@ jobs:
           cache: maven
           cache-dependency-path: Backend/pom.xml
 
-      # For Java, CodeQL's language identifier is java-kotlin. Autobuild is selected
-      # explicitly; source-root points it at this repo's Backend subproject.
+      # CodeQL calls Java java-kotlin; source-root selects this repository's Backend subproject.
       - name: Initialize CodeQL for Java and enable autobuild
         uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
         with:
@@ -72,11 +70,11 @@ jobs:
           build-mode: autobuild
           source-root: Backend
 
-      # Analyze and upload SARIF results to the repository's Security tab.
+      # Upload static-analysis findings to the repository's Security tab.
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
 
-  # Scan source files and the final runtime image; this job also waits for build to pass.
+  # Scan repository files and the runtime image; this job is gated on the Maven build.
   trivy:
     name: Trivy filesystem and image scans
     needs: build
@@ -85,8 +83,7 @@ jobs:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # Report high/critical findings without blocking initial adoption; tighten the
-      # exit-code policy after reviewing and resolving the initial vulnerability baseline.
+      # Report findings without blocking initial adoption; tighten the exit-code policy after triage.
       - name: Trivy filesystem scan (report only)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
@@ -98,12 +95,10 @@ jobs:
           exit-code: '0'
           version: v0.70.0
 
-      # Buildx is used by Docker so the same build command can later support multi-platform builds.
+      # Buildx builds the backend image; Backend is the context so Backend/.dockerignore is honored.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      # Build for scanning only: --load makes the image available to Trivy on this runner;
-      # the backend directory is the build context so its .dockerignore is applied.
       - name: Build backend image for scanning
         run: >-
           docker buildx build
@@ -112,7 +107,7 @@ jobs:
           --load
           Backend
 
-      # Scan the exact local image produced above; exit-code 0 reports findings without failing CI.
+      # Scan the local image; exit-code 0 reports vulnerabilities without failing the job.
       - name: Trivy image scan (report only)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
@@ -123,3 +118,74 @@ jobs:
           severity: HIGH,CRITICAL
           exit-code: '0'
           version: v0.70.0
+
+      # Transfer this exact scanned image to the publish job instead of rebuilding a different image.
+      - name: Save scanned backend image
+        run: docker save task-sprint-tracker-backend:${GITHUB_SHA} | gzip -1 > scanned-backend-image.tar.gz
+
+      - name: Upload scanned backend image for the publish job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: scanned-backend-image
+          path: scanned-backend-image.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+  # Publish only an image that passed both security jobs, and never expose JFrog credentials to PRs.
+  push-artifact:
+    name: Push scanned image to JFrog
+    needs:
+      - codeql
+      - trivy
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      # Download the image tar created after Trivy scanned it; this avoids rebuilding an unscanned image.
+      - name: Download scanned backend image
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: scanned-backend-image
+          path: ${{ runner.temp }}/scanned-backend-image
+
+      - name: Load the scanned image into Docker
+        run: gzip -dc "${{ runner.temp }}/scanned-backend-image/scanned-backend-image.tar.gz" | docker load
+
+      # Authenticate using a scoped JFrog token; the registry host must not include https:// or a path.
+      # JFROG_USERNAME is a non-secret GitHub Actions variable matching the token's subject user.
+      - name: Log in to JFrog Docker registry
+        env:
+          JFROG_URL: ${{ secrets.JFROG_URL }}
+          JFROG_TOKEN: ${{ secrets.JFROG_TOKEN }}
+          JFROG_USERNAME: ${{ vars.JFROG_USERNAME }}
+        run: |
+          set -euo pipefail
+          test -n "${JFROG_URL:-}" || { echo "Set the JFROG_URL repository secret." >&2; exit 1; }
+          test -n "${JFROG_TOKEN:-}" || { echo "Set the JFROG_TOKEN repository secret." >&2; exit 1; }
+          test -n "${JFROG_USERNAME:-}" || { echo "Set the JFROG_USERNAME repository variable." >&2; exit 1; }
+          case "$JFROG_URL" in
+            *://*|*/) echo "JFROG_URL must be the registry hostname only (no scheme or trailing slash)." >&2; exit 1 ;;
+          esac
+          printf '%s' "$JFROG_TOKEN" | docker login "$JFROG_URL" --username "$JFROG_USERNAME" --password-stdin
+
+      # Publish both the immutable commit-SHA tag and latest, which the requested Kubernetes template uses.
+      - name: Tag scanned image for JFrog
+        env:
+          JFROG_URL: ${{ secrets.JFROG_URL }}
+        run: |
+          set -euo pipefail
+          source_image="task-sprint-tracker-backend:${GITHUB_SHA}"
+          image_base="${JFROG_URL}/default-docker-local/sprint-tracker"
+          docker tag "$source_image" "${image_base}:${GITHUB_SHA}"
+          docker tag "$source_image" "${image_base}:latest"
+
+      - name: Push both image tags to JFrog
+        env:
+          JFROG_URL: ${{ secrets.JFROG_URL }}
+        run: |
+          set -euo pipefail
+          image_base="${JFROG_URL}/default-docker-local/sprint-tracker"
+          docker push "${image_base}:${GITHUB_SHA}"
+          docker push "${image_base}:latest"

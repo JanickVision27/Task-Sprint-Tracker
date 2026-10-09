@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sprint-tracker
+  namespace: default
+  labels:
+    app: sprint-tracker
+spec:
+  # Keep the API private inside the cluster; expose it through an ingress/gateway separately.
+  type: ClusterIP
+  selector:
+    app: sprint-tracker
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP

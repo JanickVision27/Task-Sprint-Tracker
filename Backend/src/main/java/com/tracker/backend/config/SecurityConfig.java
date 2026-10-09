@@ -44,7 +44,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll() // Signup and Login are PUBLIC
                         .requestMatchers("/api/health").permitAll()  // Existing Render health-check endpoint is PUBLIC
-                        .requestMatchers("/actuator/health").permitAll() // Docker health check must not need a JWT
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll() // Container/Kubernetes probes need no JWT
                         .requestMatchers("/ws/**").permitAll()       // WebSocket connection tunnel is PUBLIC
                         .anyRequest().authenticated()                // Everything else REQUIRES a valid JWT
                 )

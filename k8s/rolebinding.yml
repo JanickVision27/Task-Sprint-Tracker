@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sprint-tracker-configmap-reader
+  namespace: default
+subjects:
+  # Bind only the workload's dedicated service account, not the default account or a broad group.
+  - kind: ServiceAccount
+    name: sprint-tracker-sa
+    namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sprint-tracker-configmap-reader

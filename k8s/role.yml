@@ -1,0 +1,10 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sprint-tracker-configmap-reader
+  namespace: default
+rules:
+  # Narrow RBAC example: this role can only read ConfigMaps in default, not mutate cluster resources.
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]

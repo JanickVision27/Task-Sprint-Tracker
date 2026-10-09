@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sprint-tracker
+  namespace: default
+  labels:
+    app: sprint-tracker
+spec:
+  # Run two instances so a single pod restart does not take the API offline.
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sprint-tracker
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: sprint-tracker
+    spec:
+      # The application has no Kubernetes API use case; do not mount a service-account token.
+      serviceAccountName: sprint-tracker-sa
+      automountServiceAccountToken: false
+      # Private JFrog images need a separate docker-registry pull secret in this namespace.
+      imagePullSecrets:
+        - name: jfrog-registry-credentials
+      # Match the non-root UID/GID used by Backend/Dockerfile and apply a default seccomp profile.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: sprint-tracker
+          # Kubernetes does not expand ${JFROG_URL}; render this template with envsubst/Helm before applying.
+          # The repository path is <JFROG_URL>/default-docker-local/<image>:<tag>.
+          image: ${JFROG_URL}/default-docker-local/sprint-tracker:latest
+          # Use latest only for this demo manifest; pin an immutable commit-SHA tag for production rollouts.
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          # Pull application credentials from a Kubernetes Secret, never from literals in this manifest.
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: sprint-tracker-secrets
+                  key: DATABASE_URL
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: sprint-tracker-secrets
+                  key: DATABASE_USERNAME
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sprint-tracker-secrets
+                  key: DATABASE_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: sprint-tracker-secrets
+                  key: JWT_SECRET
+          # Reserve enough CPU/memory for normal startup and cap resource consumption.
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 250m
+            limits:
+              memory: 512Mi
+              cpu: 500m
+          # Restart a stuck process; health probe groups are explicitly enabled in application.properties.
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          # Route traffic only after the application is ready to serve requests.
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          # The root filesystem stays read-only; Spring/JVM temporary files go to this scratch volume.
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Mi
