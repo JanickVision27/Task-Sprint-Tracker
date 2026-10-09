@@ -1,0 +1,24 @@
+# This build context is Backend: the React frontend is a separate application and
+# must not be copied into the backend-only image. Include both spellings because the
+# repository's actual sibling directory is capitalized as Frontend/.
+frontend/
+Frontend/
+
+# Exclude generated build output; Maven recreates it inside the build stage.
+target/
+**/target/
+
+# Exclude repository/CI metadata and any Node dependencies if they exist in context.
+.git/
+.github/
+node_modules/
+**/node_modules/
+
+# Documentation is not needed to compile or run the service.
+*.md
+**/*.md
+
+# Keep local environment files and ignored developer-only configuration out of the build context.
+.env
+.env.*
+application-local.properties
