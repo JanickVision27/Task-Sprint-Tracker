@@ -1,0 +1,22 @@
+version: 2
+updates:
+  # Keep Java/Spring and other Maven dependencies patched from the backend POM.
+  - package-ecosystem: maven
+    directory: /Backend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  # Keep GitHub Actions versions and SHA-pinned action references current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  # Keep the Docker base images used by Backend/Dockerfile patched.
+  - package-ecosystem: docker
+    directory: /Backend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

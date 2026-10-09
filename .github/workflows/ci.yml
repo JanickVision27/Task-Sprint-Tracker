@@ -1,26 +1,125 @@
-name: Backend CI
+name: Backend CI and security
 
+# Validate changes before they reach main and again after a direct push to main.
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+
+# Limit the workflow token to checkout, CodeQL result upload, and CodeQL run metadata.
+permissions:
+  contents: read
+  security-events: write
+  actions: read
 
 jobs:
-  build-and-test:
+  # Build and test the backend first; the security jobs only run after this gate passes.
+  build:
+    name: Maven build and tests
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      # Pin third-party actions to immutable commits; Dependabot can update these pins.
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # pom.xml targets Java 21, so CI must use the same JDK (not Java 17).
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
+          distribution: temurin
           java-version: '21'
-          distribution: 'temurin'
           cache: maven
+          # Key the Maven cache on the backend dependency manifest.
+          cache-dependency-path: Backend/pom.xml
 
-      - name: Run Tests with Maven
+      # Run from Backend because that directory contains the Maven project.
+      # verify compiles, runs tests, and packages the application.
+      - name: Build and test backend
         working-directory: Backend
-        run: mvn -B clean test
+        run: mvn --batch-mode --no-transfer-progress clean verify
+
+  # Run CodeQL only after the backend build passes, to avoid analyzing broken code.
+  codeql:
+    name: CodeQL analysis
+    needs: build
+    # Fork PR tokens cannot upload SARIF; still analyze pushes and same-repository PRs.
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out full history for CodeQL
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # CodeQL's Java autobuild also needs the JDK version declared by the Maven project.
+      - name: Set up JDK 21 for CodeQL autobuild
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: Backend/pom.xml
+
+      # For Java, CodeQL's language identifier is java-kotlin. Autobuild is selected
+      # explicitly; source-root points it at this repo's Backend subproject.
+      - name: Initialize CodeQL for Java and enable autobuild
+        uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          languages: java-kotlin
+          build-mode: autobuild
+          source-root: Backend
+
+      # Analyze and upload SARIF results to the repository's Security tab.
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+
+  # Scan source files and the final runtime image; this job also waits for build to pass.
+  trivy:
+    name: Trivy filesystem and image scans
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Report high/critical findings without blocking initial adoption; tighten the
+      # exit-code policy after reviewing and resolving the initial vulnerability baseline.
+      - name: Trivy filesystem scan (report only)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          exit-code: '0'
+          version: v0.70.0
+
+      # Buildx is used by Docker so the same build command can later support multi-platform builds.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      # Build for scanning only: --load makes the image available to Trivy on this runner;
+      # the backend directory is the build context so its .dockerignore is applied.
+      - name: Build backend image for scanning
+        run: >-
+          docker buildx build
+          --file Backend/Dockerfile
+          --tag task-sprint-tracker-backend:${GITHUB_SHA}
+          --load
+          Backend
+
+      # Scan the exact local image produced above; exit-code 0 reports findings without failing CI.
+      - name: Trivy image scan (report only)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: task-sprint-tracker-backend:${{ github.sha }}
+          format: table
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          exit-code: '0'
+          version: v0.70.0
