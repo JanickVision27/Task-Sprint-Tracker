@@ -15,7 +15,7 @@ COPY src/ ./src/
 RUN mvn --batch-mode --no-transfer-progress -DskipTests package
 
 # Stage 2: use only a JRE on Alpine to reduce the production image's size and attack surface.
-FROM eclipse-temurin:21-jre-alpine AS runtime
+FROM eclipse-temurin:25-jre-alpine AS runtime
 WORKDIR /app
 
 # Use a fixed, unprivileged UID/GID so a compromised process has no root privileges.
