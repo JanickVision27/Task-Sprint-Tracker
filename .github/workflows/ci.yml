@@ -131,13 +131,40 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  # Secrets cannot be referenced directly by a job-level if. Check JFROG_URL in a small
+  # main-push-only job, then pass a non-secret boolean output to the publish job condition.
+  jfrog_config_check:
+    name: Check optional JFrog publishing credentials
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    outputs:
+      url_configured: ${{ steps.check_url.outputs.configured }}
+    steps:
+      - name: Check if JFROG_URL is configured
+        id: check_url
+        env:
+          JFROG_URL: ${{ secrets.JFROG_URL }}
+        run: |
+          if [[ -n "${JFROG_URL:-}" ]]; then
+            printf 'configured=true\n' >> "$GITHUB_OUTPUT"
+            echo "JFROG_URL is configured; JFrog publish can continue."
+          else
+            printf 'configured=false\n' >> "$GITHUB_OUTPUT"
+            message='JFrog credentials not configured — skipping artifact push'
+            echo "$message"
+            echo "::notice title=JFrog publish skipped::$message"
+            printf '%s\n' "$message" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   # Publish only an image that passed both security jobs, and never expose JFrog credentials to PRs.
   push-artifact:
     name: Push scanned image to JFrog
     needs:
       - codeql
       - trivy
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      - jfrog_config_check
+    # Skip publishing cleanly when the optional JFROG_URL secret is not configured.
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.jfrog_config_check.outputs.url_configured == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

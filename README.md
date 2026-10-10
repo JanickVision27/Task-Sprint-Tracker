@@ -26,46 +26,54 @@ I wanted to challenge myself as a student to build something closer to what real
 | **Database** | PostgreSQL (Hosted on Neon) + H2 (for tests) | Cloud Postgres so I didn't overload my 8GB RAM laptop locally |
 | **Authentication** | JWT (JSON Web Tokens) + BCrypt | To hash passwords safely and keep users logged in across requests |
 | **Frontend** | React (Vite), Tailwind CSS, React Query, Axios, `@dnd-kit` | Fast UI with drag-and-drop cards and automatic data fetching |
-| **Testing & CI** | JUnit 5 + Mockito, GitHub Actions | To test my service logic automatically whenever I push code |
+| **Testing & CI** | JUnit 5 + Mockito, GitHub Actions, CodeQL, Trivy, Dependabot | Runs backend tests and security scans for pull requests to `main` and pushes to `main`; Dependabot checks updates weekly |
 | **Deployment** | Render (Backend Docker) · Vercel (Frontend) · Neon (DB) | Free cloud hosting so anyone can try the app live |
 
 ---
 
-## System Architecture (Vertical Flow)
+## System Architecture
 
-Here is how a user action flows from the browser all the way to the database and back to everyone on the board:
+This diagram follows a task update from the browser to the database, then shows how other people on the board receive it live without refreshing.
 
 ```mermaid
-flowchart TD
-    User(["👤 User in Browser\n(React + Tailwind on Vercel)"])
-    
-    subgraph Frontend ["Frontend (React + Vite)"]
-        Board["Kanban Board UI\n(Drag & Drop with @dnd-kit)"]
-        Axios["Axios API Client\n(Attaches JWT Token)"]
-        WSClient["SockJS + STOMP Client\n(Listens for live updates)"]
+flowchart LR
+    subgraph Browser["User's browser"]
+        User["Team member"] --> UI["React + Vite<br/>Kanban board"]
+        UI --> Axios["Axios<br/>REST client + JWT"]
+        UI --> WSClient["SockJS + STOMP<br/>live-update client"]
+        WSClient -->|"Update board without reload"| UI
     end
 
-    subgraph Backend ["Backend (Spring Boot on Render)"]
-        Security["Spring Security + JWT Filter\n(Checks login token & user role)"]
-        Controller["REST Controllers\n(/api/projects, /api/sprints, /api/tasks)"]
-        Service["Service Layer\n(Checks business rules & saves data)"]
-        WSBroker["WebSocket Message Broker\n(/topic/sprints/{sprintId}/tasks)"]
-        Repository["JPA Repositories\n(Runs SQL queries)"]
+    Vercel["Vercel<br/>serves the frontend build"] -->|"Loads the React app"| UI
+
+    subgraph Backend["Render · Spring Boot Docker backend"]
+        Security["Spring Security<br/>JWT and role checks"]
+        Controllers["REST controllers<br/>/api/..."]
+        Services["Service layer<br/>business rules"]
+        Repositories["JPA repositories"]
+        Broker["STOMP message broker<br/>/topic/sprints/..."]
+        Security --> Controllers --> Services --> Repositories
+        Services -.->|"Publish task or sprint update"| Broker
     end
 
-    DB[("🗄️ PostgreSQL Database\n(Hosted on Neon)")]
+    Neon[("Neon PostgreSQL")]
+    Axios <-->|"1 · HTTPS /api · Bearer JWT"| Security
+    Repositories <-->|"2 · SQL via JDBC"| Neon
+    WSClient <-->|"3 · WebSocket /ws · STOMP"| Broker
 
-    User --> Board
-    Board -->|"1. User drags or creates a task"| Axios
-    Axios -->|"2. Sends HTTP request with JWT"| Security
-    Security -->|"3. Token is valid"| Controller
-    Controller -->|"4. Calls business logic"| Service
-    Service -->|"5. Saves changes"| Repository
-    Repository -->|"6. Stores in tables"| DB
-    Service ==>|"7. Broadcasts update"| WSBroker
-    WSBroker ==>|"8. Pushes live message (/ws)"| WSClient
-    WSClient ==>|"9. Refreshes board automatically"| Board
+    classDef browserNode fill:#eff6ff,stroke:#2563eb,stroke-width:1px,color:#0f172a
+    classDef platformNode fill:#fff7ed,stroke:#ea580c,stroke-width:1px,color:#431407
+    classDef backendNode fill:#f5f3ff,stroke:#7c3aed,stroke-width:1px,color:#1e1b4b
+    classDef databaseNode fill:#ecfdf5,stroke:#059669,stroke-width:1px,color:#064e3b
+    class User,UI,Axios,WSClient browserNode
+    class Vercel platformNode
+    class Security,Controllers,Services,Repositories,Broker backendNode
+    class Neon databaseNode
+    style Browser fill:#f8fbff,stroke:#93c5fd
+    style Backend fill:#fcfaff,stroke:#c4b5fd
 ```
+
+**How to read it:** Axios sends authenticated API requests. Spring checks the token and role, applies the business rules, and saves changes in PostgreSQL. The WebSocket broker then pushes an update to connected browsers.
 
 ---
 
@@ -175,6 +183,14 @@ npm install
 npm run dev
 ```
 Open `http://localhost:5173`.
+
+---
+
+## DevOps & Deployment
+
+- **Automated checks:** GitHub Actions builds and tests the Java 21 backend, then runs CodeQL and Trivy in parallel. Trivy reports findings but currently does not fail the pipeline for them. Jenkins and Azure Pipelines examples also run Trivy; Dependabot checks for updates weekly.
+- **Container publishing:** The multi-stage Docker image runs as a non-root user. When `JFROG_URL` is configured, GitHub Actions publishes the scanned image to JFrog only after a successful push to `main` and passing scan jobs; otherwise, the publish job skips. The pipeline does not deploy to Kubernetes.
+- **Optional Kubernetes setup:** `k8s/` contains backend-only manifests for manual deployment. Create real app and JFrog image-pull Secrets outside Git, render `${JFROG_URL}` before applying, and do not use the committed placeholder Secret values. The current NetworkPolicy allows TCP/5432 to any IP, so narrow that rule before production.
 
 ---
 
