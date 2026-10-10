@@ -189,7 +189,7 @@ Open `http://localhost:5173`.
 ## DevOps & Deployment
 
 - **Automated checks:** GitHub Actions builds and tests the Java 21 backend, then runs CodeQL and Trivy in parallel. Trivy reports findings but currently does not fail the pipeline for them. Jenkins and Azure Pipelines examples also run Trivy; Dependabot checks for updates weekly.
-- **Container publishing:** The multi-stage Docker image runs as a non-root user. GitHub Actions publishes the scanned image to JFrog only after a successful push to `main` and passing scan jobs; the pipeline does not deploy to Kubernetes.
+- **Container publishing:** The multi-stage Docker image runs as a non-root user. When `JFROG_URL` is configured, GitHub Actions publishes the scanned image to JFrog only after a successful push to `main` and passing scan jobs; otherwise, the publish job skips. The pipeline does not deploy to Kubernetes.
 - **Optional Kubernetes setup:** `k8s/` contains backend-only manifests for manual deployment. Create real app and JFrog image-pull Secrets outside Git, render `${JFROG_URL}` before applying, and do not use the committed placeholder Secret values. The current NetworkPolicy allows TCP/5432 to any IP, so narrow that rule before production.
 
 ---
