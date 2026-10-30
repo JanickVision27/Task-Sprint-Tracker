@@ -1,220 +1,224 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><title>Email previews</title>
-<style>body{margin:0;font-family:Inter,system-ui,sans-serif;background:#e2e8f0;padding:28px}
-h1{font-size:18px;color:#0f172a;margin:0 0 4px}p.lead{margin:0 0 20px;color:#475569;font-size:13px}
-.grid{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
-.pane{flex:1 1 420px}h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#64748b;margin:0 0 8px}
-iframe{width:100%;height:760px;border:1px solid #cbd5e1;border-radius:12px;background:#fff}</style></head>
-<body><h1>Task &amp; Sprint Tracker — transactional email previews</h1>
-<p class="lead">Rendered straight from <code>EmailTemplates.java</code> (welcome email + password reset email).</p>
-<div class="grid">
-<div class="pane"><h2>Welcome / confirmation</h2><iframe srcdoc="&lt;!DOCTYPE html&gt;
-&lt;html lang=&quot;en&quot;&gt;
-&lt;head&gt;
-  &lt;meta charset=&quot;utf-8&quot;&gt;
-  &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
-  &lt;meta name=&quot;color-scheme&quot; content=&quot;light&quot;&gt;
-  &lt;title&gt;Task &amp;amp; Sprint Tracker&lt;/title&gt;
-&lt;/head&gt;
-&lt;body style=&quot;margin:0;padding:0;background-color:#f1f5f9;&quot;&gt;
-  &lt;div style=&quot;display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;color:#f1f5f9;font-size:1px;line-height:1px;&quot;&gt;
-    Your Task &amp;amp; Sprint Tracker account is ready — here is how to get started.
-  &lt;/div&gt;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Task &amp; Sprint Tracker — email previews</title>
+<style>
+  body { margin:0; padding:32px 16px; background:#f8fafc; font-family:'Inter',system-ui,sans-serif; color:#0f172a; }
+  .head { max-width:640px; margin:0 auto 28px; }
+  .head h1 { font-size:20px; margin:0 0 6px; }
+  .head p { margin:0; font-size:13px; color:#64748b; line-height:1.6; }
+  .email { max-width:640px; margin:0 auto 40px; }
+  .label { display:inline-block; font-size:11px; letter-spacing:.09em; text-transform:uppercase; font-weight:700;
+           color:#4338ca; background:#eef2ff; border:1px solid #c7d2fe; border-radius:999px; padding:4px 12px; margin-bottom:12px; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>Transactional email previews</h1>
+    <p>Rendered from <code>Backend/src/main/java/com/tracker/backend/service/mail/EmailTemplates.java</code>.
+       These are the templates Brevo delivers: the welcome email sent on registration and the single-use
+       password reset email. Keep this file in sync when you tweak the template.</p>
+  </div>
 
-  &lt;table role=&quot;presentation&quot; width=&quot;100%&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;background-color:#f1f5f9;&quot;&gt;
-    &lt;tr&gt;
-      &lt;td align=&quot;center&quot; style=&quot;padding:32px 16px;&quot;&gt;
-        &lt;table role=&quot;presentation&quot; width=&quot;100%&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot;
-               style=&quot;max-width:600px;background-color:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;&quot;&gt;
+  <div class="email">
+    <span class="label">1 · Welcome / confirmation</span>
+    
+  <div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;color:#f1f5f9;font-size:1px;line-height:1px;">
+    Your Task &amp; Sprint Tracker account is ready — here is how to get started.
+  </div>
 
-          &lt;tr&gt;
-            &lt;td style=&quot;background-color:#4f46e5;padding:22px 32px;&quot;&gt;
-              &lt;table role=&quot;presentation&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot;&gt;
-                &lt;tr&gt;
-                  &lt;td align=&quot;center&quot; style=&quot;width:40px;height:40px;background-color:#4338ca;border-radius:10px;font:700 15px/40px &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#ffffff;&quot;&gt;
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f1f5f9;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+               style="max-width:600px;background-color:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">
+
+          <tr>
+            <td style="background-color:#4f46e5;padding:22px 32px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="width:40px;height:40px;background-color:#4338ca;border-radius:10px;font:700 15px/40px 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#ffffff;">
                     ST
-                  &lt;/td&gt;
-                  &lt;td style=&quot;padding-left:12px;font:600 16px/1.4 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#ffffff;&quot;&gt;
-                    Task &amp;amp; Sprint Tracker
-                  &lt;/td&gt;
-                &lt;/tr&gt;
-              &lt;/table&gt;
-            &lt;/td&gt;
-          &lt;/tr&gt;
+                  </td>
+                  <td style="padding-left:12px;font:600 16px/1.4 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#ffffff;">
+                    Task &amp; Sprint Tracker
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-          &lt;tr&gt;
-            &lt;td style=&quot;padding:32px;&quot;&gt;
-              &lt;h1 style=&quot;margin:0 0 8px;font:700 24px/1.3 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#0f172a;&quot;&gt;Welcome aboard, Vikranth! 🎉&lt;/h1&gt;
-&lt;p style=&quot;margin:0 0 20px;font:400 15px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#475569;&quot;&gt;
-  Your account is ready. You signed up as &lt;strong style=&quot;color:#0f172a;&quot;&gt;Manager (sprints, tasks and team lead)&lt;/strong&gt;
-  with &lt;strong style=&quot;color:#0f172a;&quot;&gt;vikranth@example.com&lt;/strong&gt;.
-&lt;/p&gt;
+          <tr>
+            <td style="padding:32px;">
+              <h1 style="margin:0 0 8px;font:700 24px/1.3 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#0f172a;">Welcome aboard, Vikranth! 🎉</h1>
+<p style="margin:0 0 20px;font:400 15px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#475569;">
+  Your account is ready. You signed up as <strong style="color:#0f172a;">Manager (sprints, tasks and team lead)</strong>
+  with <strong style="color:#0f172a;">vikranth@example.com</strong>.
+</p>
 
-&lt;p style=&quot;margin:0 0 14px;font:600 14px/1.5 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#0f172a;&quot;&gt;Here is what you can do right away&lt;/p&gt;
-&lt;table role=&quot;presentation&quot; width=&quot;100%&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;margin:0 0 4px;&quot;&gt;
-  &lt;tr&gt;
-    &lt;td valign=&quot;top&quot; style=&quot;width:20px;padding:0 10px 10px 0;font:700 14px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#4f46e5;&quot;&gt;&amp;#10003;&lt;/td&gt;
-    &lt;td valign=&quot;top&quot; style=&quot;padding:0 0 10px;font:400 14px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#475569;&quot;&gt;Plan work as &lt;strong style=&quot;color:#0f172a;&quot;&gt;Projects → Sprints → Tasks&lt;/strong&gt;&lt;/td&gt;
-  &lt;/tr&gt;  &lt;tr&gt;
-    &lt;td valign=&quot;top&quot; style=&quot;width:20px;padding:0 10px 10px 0;font:700 14px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#4f46e5;&quot;&gt;&amp;#10003;&lt;/td&gt;
-    &lt;td valign=&quot;top&quot; style=&quot;padding:0 0 10px;font:400 14px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#475569;&quot;&gt;Drag tasks across &lt;strong style=&quot;color:#0f172a;&quot;&gt;Todo, In Progress and Done&lt;/strong&gt; on a live Kanban board&lt;/td&gt;
-  &lt;/tr&gt;  &lt;tr&gt;
-    &lt;td valign=&quot;top&quot; style=&quot;width:20px;padding:0 10px 10px 0;font:700 14px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#4f46e5;&quot;&gt;&amp;#10003;&lt;/td&gt;
-    &lt;td valign=&quot;top&quot; style=&quot;padding:0 0 10px;font:400 14px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#475569;&quot;&gt;Comment on tasks so the whole team stays in the loop&lt;/td&gt;
-  &lt;/tr&gt;  &lt;tr&gt;
-    &lt;td valign=&quot;top&quot; style=&quot;width:20px;padding:0 10px 10px 0;font:700 14px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#4f46e5;&quot;&gt;&amp;#10003;&lt;/td&gt;
-    &lt;td valign=&quot;top&quot; style=&quot;padding:0 0 10px;font:400 14px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#475569;&quot;&gt;Everything updates in real time for teammates viewing the same board&lt;/td&gt;
-  &lt;/tr&gt;
-&lt;/table&gt;
+<p style="margin:0 0 14px;font:600 14px/1.5 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#0f172a;">Here is what you can do right away</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 4px;">
+  <tr>
+    <td valign="top" style="width:20px;padding:0 10px 10px 0;font:700 14px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#4f46e5;">&#10003;</td>
+    <td valign="top" style="padding:0 0 10px;font:400 14px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#475569;">Plan work as <strong style="color:#0f172a;">Projects → Sprints → Tasks</strong></td>
+  </tr>  <tr>
+    <td valign="top" style="width:20px;padding:0 10px 10px 0;font:700 14px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#4f46e5;">&#10003;</td>
+    <td valign="top" style="padding:0 0 10px;font:400 14px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#475569;">Drag tasks across <strong style="color:#0f172a;">Todo, In Progress and Done</strong> on a live Kanban board</td>
+  </tr>  <tr>
+    <td valign="top" style="width:20px;padding:0 10px 10px 0;font:700 14px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#4f46e5;">&#10003;</td>
+    <td valign="top" style="padding:0 0 10px;font:400 14px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#475569;">Comment on tasks so the whole team stays in the loop</td>
+  </tr>  <tr>
+    <td valign="top" style="width:20px;padding:0 10px 10px 0;font:700 14px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#4f46e5;">&#10003;</td>
+    <td valign="top" style="padding:0 0 10px;font:400 14px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#475569;">Everything updates in real time for teammates viewing the same board</td>
+  </tr>
+</table>
 
-&lt;table role=&quot;presentation&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;margin:26px 0 0;&quot;&gt;
-  &lt;tr&gt;
-    &lt;td align=&quot;center&quot; style=&quot;border-radius:10px;background-color:#4f46e5;&quot;&gt;
-      &lt;a href=&quot;https://task-sprint-tracker.vercel.app/dashboard&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;
-         style=&quot;display:inline-block;padding:14px 30px;font:600 15px/1 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#ffffff;text-decoration:none;border-radius:10px;&quot;&gt;
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:26px 0 0;">
+  <tr>
+    <td align="center" style="border-radius:10px;background-color:#4f46e5;">
+      <a href="https://task-sprint-tracker.vercel.app/dashboard" target="_blank" rel="noopener"
+         style="display:inline-block;padding:14px 30px;font:600 15px/1 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#ffffff;text-decoration:none;border-radius:10px;">
         Open my dashboard
-      &lt;/a&gt;
-    &lt;/td&gt;
-  &lt;/tr&gt;
-&lt;/table&gt;
-&lt;p style=&quot;margin:18px 0 0;font:400 12px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#94a3b8;&quot;&gt;
+      </a>
+    </td>
+  </tr>
+</table>
+<p style="margin:18px 0 0;font:400 12px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#94a3b8;">
   Button not working? Paste this link into your browser:
-&lt;/p&gt;
-&lt;p style=&quot;margin:6px 0 0;font:400 12px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#4f46e5;word-break:break-all;&quot;&gt;
-  &lt;a href=&quot;https://task-sprint-tracker.vercel.app/dashboard&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot; style=&quot;color:#4f46e5;text-decoration:underline;&quot;&gt;https://task-sprint-tracker.vercel.app/dashboard&lt;/a&gt;
-&lt;/p&gt;
+</p>
+<p style="margin:6px 0 0;font:400 12px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#4f46e5;word-break:break-all;">
+  <a href="https://task-sprint-tracker.vercel.app/dashboard" target="_blank" rel="noopener" style="color:#4f46e5;text-decoration:underline;">https://task-sprint-tracker.vercel.app/dashboard</a>
+</p>
 
-&lt;table role=&quot;presentation&quot; width=&quot;100%&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;margin:28px 0 0;&quot;&gt;
-  &lt;tr&gt;
-    &lt;td style=&quot;background-color:#eef2ff;border-left:3px solid #4f46e5;border-radius:8px;padding:14px 16px;&quot;&gt;
-      &lt;p style=&quot;margin:0;font:400 13px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#3730a3;&quot;&gt;
-        &lt;strong&gt;Team tip:&lt;/strong&gt; create a Project, add a Sprint inside it, then break the work into
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 0;">
+  <tr>
+    <td style="background-color:#eef2ff;border-left:3px solid #4f46e5;border-radius:8px;padding:14px 16px;">
+      <p style="margin:0;font:400 13px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#3730a3;">
+        <strong>Team tip:</strong> create a Project, add a Sprint inside it, then break the work into
         Tasks. Everyone on the board sees changes live — no refresh needed.
-      &lt;/p&gt;
-    &lt;/td&gt;
-  &lt;/tr&gt;
-&lt;/table&gt;
+      </p>
+    </td>
+  </tr>
+</table>
 
-&lt;p style=&quot;margin:24px 0 0;font:400 15px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#475569;&quot;&gt;
-  Happy shipping,&lt;br&gt;
-  &lt;strong style=&quot;color:#0f172a;&quot;&gt;The Task &amp;amp; Sprint Tracker team&lt;/strong&gt;
-&lt;/p&gt;
-            &lt;/td&gt;
-          &lt;/tr&gt;
+<p style="margin:24px 0 0;font:400 15px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#475569;">
+  Happy shipping,<br>
+  <strong style="color:#0f172a;">The Task &amp; Sprint Tracker team</strong>
+</p>
+            </td>
+          </tr>
 
-          &lt;tr&gt;
-            &lt;td style=&quot;padding:20px 32px 26px;background-color:#f8fafc;border-top:1px solid #e2e8f0;&quot;&gt;
-              &lt;p style=&quot;margin:0 0 6px;font:400 12px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#94a3b8;&quot;&gt;
+          <tr>
+            <td style="padding:20px 32px 26px;background-color:#f8fafc;border-top:1px solid #e2e8f0;">
+              <p style="margin:0 0 6px;font:400 12px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#94a3b8;">
                 You are receiving this email because an account was created with vikranth@example.com. If that was not you, no action is needed and you can ignore this message.
-              &lt;/p&gt;
-              &lt;p style=&quot;margin:0;font:400 12px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#cbd5e1;&quot;&gt;
-                Task &amp;amp; Sprint Tracker · Projects → Sprints → Tasks, together in real time.
-              &lt;/p&gt;
-            &lt;/td&gt;
-          &lt;/tr&gt;
+              </p>
+              <p style="margin:0;font:400 12px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#cbd5e1;">
+                Task &amp; Sprint Tracker · Projects → Sprints → Tasks, together in real time.
+              </p>
+            </td>
+          </tr>
 
-        &lt;/table&gt;
-      &lt;/td&gt;
-    &lt;/tr&gt;
-  &lt;/table&gt;
-&lt;/body&gt;
-&lt;/html&gt;"></iframe></div>
-<div class="pane"><h2>Password reset</h2><iframe srcdoc="&lt;!DOCTYPE html&gt;
-&lt;html lang=&quot;en&quot;&gt;
-&lt;head&gt;
-  &lt;meta charset=&quot;utf-8&quot;&gt;
-  &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
-  &lt;meta name=&quot;color-scheme&quot; content=&quot;light&quot;&gt;
-  &lt;title&gt;Task &amp;amp; Sprint Tracker&lt;/title&gt;
-&lt;/head&gt;
-&lt;body style=&quot;margin:0;padding:0;background-color:#f1f5f9;&quot;&gt;
-  &lt;div style=&quot;display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;color:#f1f5f9;font-size:1px;line-height:1px;&quot;&gt;
-    Use this secure link to set a new password for your Task &amp;amp; Sprint Tracker account.
-  &lt;/div&gt;
+        </table>
+      </td>
+    </tr>
+  </table>
 
-  &lt;table role=&quot;presentation&quot; width=&quot;100%&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;background-color:#f1f5f9;&quot;&gt;
-    &lt;tr&gt;
-      &lt;td align=&quot;center&quot; style=&quot;padding:32px 16px;&quot;&gt;
-        &lt;table role=&quot;presentation&quot; width=&quot;100%&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot;
-               style=&quot;max-width:600px;background-color:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;&quot;&gt;
+  </div>
 
-          &lt;tr&gt;
-            &lt;td style=&quot;background-color:#4f46e5;padding:22px 32px;&quot;&gt;
-              &lt;table role=&quot;presentation&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot;&gt;
-                &lt;tr&gt;
-                  &lt;td align=&quot;center&quot; style=&quot;width:40px;height:40px;background-color:#4338ca;border-radius:10px;font:700 15px/40px &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#ffffff;&quot;&gt;
+  <div class="email">
+    <span class="label">2 · Password reset</span>
+    
+  <div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;color:#f1f5f9;font-size:1px;line-height:1px;">
+    Use this secure link to set a new password for your Task &amp; Sprint Tracker account.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f1f5f9;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+               style="max-width:600px;background-color:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">
+
+          <tr>
+            <td style="background-color:#4f46e5;padding:22px 32px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="width:40px;height:40px;background-color:#4338ca;border-radius:10px;font:700 15px/40px 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#ffffff;">
                     ST
-                  &lt;/td&gt;
-                  &lt;td style=&quot;padding-left:12px;font:600 16px/1.4 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#ffffff;&quot;&gt;
-                    Task &amp;amp; Sprint Tracker
-                  &lt;/td&gt;
-                &lt;/tr&gt;
-              &lt;/table&gt;
-            &lt;/td&gt;
-          &lt;/tr&gt;
+                  </td>
+                  <td style="padding-left:12px;font:600 16px/1.4 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#ffffff;">
+                    Task &amp; Sprint Tracker
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-          &lt;tr&gt;
-            &lt;td style=&quot;padding:32px;&quot;&gt;
-              &lt;h1 style=&quot;margin:0 0 8px;font:700 24px/1.3 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#0f172a;&quot;&gt;Reset your password&lt;/h1&gt;
-&lt;p style=&quot;margin:0 0 20px;font:400 15px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#475569;&quot;&gt;
+          <tr>
+            <td style="padding:32px;">
+              <h1 style="margin:0 0 8px;font:700 24px/1.3 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#0f172a;">Reset your password</h1>
+<p style="margin:0 0 20px;font:400 15px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#475569;">
   Hi Vikranth, we received a request to reset the password for
-  &lt;strong style=&quot;color:#0f172a;&quot;&gt;vikranth@example.com&lt;/strong&gt;.
+  <strong style="color:#0f172a;">vikranth@example.com</strong>.
   Click the button below to choose a new one.
-&lt;/p&gt;
+</p>
 
-&lt;table role=&quot;presentation&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;margin:26px 0 0;&quot;&gt;
-  &lt;tr&gt;
-    &lt;td align=&quot;center&quot; style=&quot;border-radius:10px;background-color:#4f46e5;&quot;&gt;
-      &lt;a href=&quot;https://task-sprint-tracker.vercel.app/reset-password?token=8Kd2xQz7exampletoken&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;
-         style=&quot;display:inline-block;padding:14px 30px;font:600 15px/1 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#ffffff;text-decoration:none;border-radius:10px;&quot;&gt;
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:26px 0 0;">
+  <tr>
+    <td align="center" style="border-radius:10px;background-color:#4f46e5;">
+      <a href="https://task-sprint-tracker.vercel.app/reset-password?token=8Kd2xQz7exampletoken" target="_blank" rel="noopener"
+         style="display:inline-block;padding:14px 30px;font:600 15px/1 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#ffffff;text-decoration:none;border-radius:10px;">
         Reset my password
-      &lt;/a&gt;
-    &lt;/td&gt;
-  &lt;/tr&gt;
-&lt;/table&gt;
-&lt;p style=&quot;margin:18px 0 0;font:400 12px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#94a3b8;&quot;&gt;
+      </a>
+    </td>
+  </tr>
+</table>
+<p style="margin:18px 0 0;font:400 12px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#94a3b8;">
   Button not working? Paste this link into your browser:
-&lt;/p&gt;
-&lt;p style=&quot;margin:6px 0 0;font:400 12px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#4f46e5;word-break:break-all;&quot;&gt;
-  &lt;a href=&quot;https://task-sprint-tracker.vercel.app/reset-password?token=8Kd2xQz7exampletoken&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot; style=&quot;color:#4f46e5;text-decoration:underline;&quot;&gt;https://task-sprint-tracker.vercel.app/reset-password?token=8Kd2xQz7exampletoken&lt;/a&gt;
-&lt;/p&gt;
+</p>
+<p style="margin:6px 0 0;font:400 12px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#4f46e5;word-break:break-all;">
+  <a href="https://task-sprint-tracker.vercel.app/reset-password?token=8Kd2xQz7exampletoken" target="_blank" rel="noopener" style="color:#4f46e5;text-decoration:underline;">https://task-sprint-tracker.vercel.app/reset-password?token=8Kd2xQz7exampletoken</a>
+</p>
 
-&lt;table role=&quot;presentation&quot; width=&quot;100%&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; border=&quot;0&quot; style=&quot;margin:26px 0 0;&quot;&gt;
-  &lt;tr&gt;
-    &lt;td style=&quot;background-color:#fff7ed;border-left:3px solid #f59e0b;border-radius:8px;padding:14px 16px;&quot;&gt;
-      &lt;p style=&quot;margin:0;font:400 13px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#9a3412;&quot;&gt;
-        &lt;strong&gt;This link expires in 30 minutes&lt;/strong&gt; and can only be used once.
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:26px 0 0;">
+  <tr>
+    <td style="background-color:#fff7ed;border-left:3px solid #f59e0b;border-radius:8px;padding:14px 16px;">
+      <p style="margin:0;font:400 13px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#9a3412;">
+        <strong>This link expires in 30 minutes</strong> and can only be used once.
         After that you will need to request a new one.
-      &lt;/p&gt;
-    &lt;/td&gt;
-  &lt;/tr&gt;
-&lt;/table&gt;
+      </p>
+    </td>
+  </tr>
+</table>
 
-&lt;p style=&quot;margin:24px 0 0;font:400 15px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#475569;&quot;&gt;
-  Didn&amp;apos;t request a password reset? You can safely ignore this email —
+<p style="margin:24px 0 0;font:400 15px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#475569;">
+  Didn&apos;t request a password reset? You can safely ignore this email —
   your current password will stay exactly the same.
-&lt;/p&gt;
+</p>
 
-&lt;p style=&quot;margin:16px 0 0;font:400 13px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#94a3b8;&quot;&gt;
+<p style="margin:16px 0 0;font:400 13px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#94a3b8;">
   If you keep receiving these emails, ask a workspace admin to review your account.
-&lt;/p&gt;
-            &lt;/td&gt;
-          &lt;/tr&gt;
+</p>
+            </td>
+          </tr>
 
-          &lt;tr&gt;
-            &lt;td style=&quot;padding:20px 32px 26px;background-color:#f8fafc;border-top:1px solid #e2e8f0;&quot;&gt;
-              &lt;p style=&quot;margin:0 0 6px;font:400 12px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#94a3b8;&quot;&gt;
+          <tr>
+            <td style="padding:20px 32px 26px;background-color:#f8fafc;border-top:1px solid #e2e8f0;">
+              <p style="margin:0 0 6px;font:400 12px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#94a3b8;">
                 This password reset was requested for vikranth@example.com. If it was not you, you can ignore this email.
-              &lt;/p&gt;
-              &lt;p style=&quot;margin:0;font:400 12px/1.6 &#x27;Inter&#x27;, -apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Roboto, Arial, sans-serif;color:#cbd5e1;&quot;&gt;
-                Task &amp;amp; Sprint Tracker · Projects → Sprints → Tasks, together in real time.
-              &lt;/p&gt;
-            &lt;/td&gt;
-          &lt;/tr&gt;
+              </p>
+              <p style="margin:0;font:400 12px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;color:#cbd5e1;">
+                Task &amp; Sprint Tracker · Projects → Sprints → Tasks, together in real time.
+              </p>
+            </td>
+          </tr>
 
-        &lt;/table&gt;
-      &lt;/td&gt;
-    &lt;/tr&gt;
-  &lt;/table&gt;
-&lt;/body&gt;
-&lt;/html&gt;"></iframe></div>
-</div></body></html>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  </div>
+</body>
+</html>
