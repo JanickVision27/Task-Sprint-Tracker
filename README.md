@@ -179,32 +179,72 @@ This project is a strong working MVP, and I am continuing to learn and improve i
 
 ## How to Run Locally
 
+### 0. Prerequisites
+- **Java 21** — the included `./mvnw` downloads Maven for you
+- **Node 20+**
+- **A PostgreSQL database**, pick whichever is easiest:
+  - **Docker** (recommended): `docker compose up -d` starts Postgres 16 on `localhost:5432`
+  - an existing local PostgreSQL install
+  - a free cloud database such as [Neon](https://neon.tech)
+
 ### 1. Backend (`Spring Boot`)
-Create `Backend/src/main/resources/application-local.properties` with your PostgreSQL details:
-```properties
-spring.datasource.url=jdbc:postgresql://<your-neon-host>/neondb?sslmode=require
-spring.datasource.username=<your-db-username>
-spring.datasource.password=<your-db-password>
-app.jwt.secret=your-local-secret-key-at-least-32-characters-long
-app.jwt.expiration=86400000
 
-# Brevo transactional email (welcome email + password reset)
-app.brevo.api-key=xkeysib-your-brevo-v3-api-key
-app.brevo.sender-email=no-reply@yourdomain.com
-app.brevo.sender-name=Task & Sprint Tracker
+**a. Create your local config file.** It is git-ignored, so your password never reaches GitHub:
 
-# Where the links inside the emails should point
-app.frontend-url=http://localhost:5173
+```bash
+# macOS / Linux
+cp Backend/application-local.properties.example Backend/application-local.properties
+
+# Windows PowerShell
+Copy-Item Backend/application-local.properties.example Backend/application-local.properties
 ```
 
-> **Brevo setup:** create a free account → **SMTP & API → API Keys** for the key, then verify your sender under **Senders & IP → Senders** (otherwise Brevo rejects the request with *"sender not valid"*). Every variable is also available as an environment variable (`BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME`, `APP_FRONTEND_URL`, `PASSWORD_RESET_TOKEN_TTL_MINUTES`) — see `Backend/.env.example`.
->
-> No Brevo key yet? Set `BREVO_ENABLED=false` (or leave `app.brevo.api-key` empty) and the app still works: emails are skipped with a warning in the log, and sign-up / password reset keep functioning.
-Run the backend (or run the automated tests):
+The template defaults already match `docker-compose.yml`. Open `Backend/application-local.properties` and check:
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/sprint_tracker
+spring.datasource.username=sprint_tracker
+spring.datasource.password=local_dev_password
+app.jwt.secret=<paste any random string of 32+ characters>
+```
+
+Using Neon or your own Postgres instead? Paste those values — a raw
+`postgresql://user:password@host/db?sslmode=require` string works too and is converted to JDBC automatically.
+
+> The file is picked up from `Backend/application-local.properties`, `Backend/config/application-local.properties`, or
+> `Backend/src/main/resources/application-local.properties` — any one of them is fine, because
+> `spring.profiles.active` defaults to `local`.
+
+**b. Start the database (Docker only), then the backend:**
+
+```bash
+docker compose up -d && docker compose ps      # wait until STATUS says "healthy"
+cd Backend
+./mvnw spring-boot:run
+```
+
+A healthy start prints the resolved target and a real database round-trip:
+
+```
+Database target: jdbc:postgresql://localhost:5432/sprint_tracker (user: sprint_tracker, profiles: local)
+Database connection OK — PostgreSQL 16.9 (read-write check passed)
+```
+
+**c. Confirm it from another terminal:**
+
+```bash
+curl http://localhost:8080/api/health
+# {"status":"UP","service":"Task & Sprint Tracker Backend","database":"UP"}
+```
+
+If the backend refuses to start, it now tells you exactly what is missing instead of failing inside Hibernate —
+see [Troubleshooting the Database](#troubleshooting-the-database).
+
+Run the automated tests (in-memory H2, no Postgres or Docker needed):
+
 ```bash
 cd Backend
 ./mvnw clean test
-./mvnw spring-boot:run
 ```
 
 ### 2. Frontend (`React + Vite`)
@@ -213,7 +253,88 @@ cd Frontend
 npm install
 npm run dev
 ```
-Open `http://localhost:5173`.
+Open `http://localhost:5173`. In dev, Vite proxies `/api` and `/ws` to `http://localhost:8080`, so no CORS setup is needed.
+
+### 3. Email locally (optional)
+
+Create a free [Brevo](https://brevo.com) account, grab a **v3 API key** from **SMTP & API → API Keys**, and verify a
+sender under **Senders & IP → Senders** (otherwise Brevo answers *"sender not valid"*). Then either put these in
+`application-local.properties` or export them as environment variables:
+
+```properties
+app.brevo.enabled=true
+app.brevo.api-key=xkeysib-your-key
+app.brevo.sender-email=no-reply@yourdomain.com
+app.brevo.sender-name=Task & Sprint Tracker
+app.frontend-url=http://localhost:5173
+```
+
+No key yet? Leave `app.brevo.enabled=false`: sign-up and password reset still work, emails are skipped, and the
+password-reset link is printed to the backend console so you can finish the flow offline.
+
+---
+
+## Troubleshooting the Database
+
+### Local setup checklist
+
+Run through these five lines — they catch almost every local database problem:
+
+```bash
+docker compose ps                                   # 1. is Postgres running and "healthy"?
+ls Backend/application-local.properties             # 2. does the git-ignored config exist?
+curl http://localhost:8080/api/health               # 3. does it say "database":"UP"?
+# 4. read the backend console: "Database target: ..." shows the URL Spring actually used
+# 5. no Docker? point spring.datasource.url at your own Postgres or at Neon instead
+```
+
+The app accepts a connection string in **three** places, and it normalises the awkward ones for you:
+
+| What you provide | Example | Handled? |
+| :--- | :--- | :--- |
+| Node-style URL (what Neon/Render/Heroku give you) | `DATABASE_URL=postgresql://user:pass@ep-xxx.neon.tech/neondb?sslmode=require` | ✅ converted automatically to `jdbc:postgresql://ep-xxx.neon.tech/neondb?sslmode=require` |
+| JDBC URL | `SPRING_DATASOURCE_URL=jdbc:postgresql://ep-xxx.neon.tech/neondb?sslmode=require` | ✅ used as-is |
+| Local file | `Backend/src/main/resources/application-local.properties` | ✅ wins when no env var is set |
+
+`DatabaseEnvironmentPostProcessor` does the conversion at startup (before Hibernate builds the dialect), so the old
+`Unable to determine Dialect without JDBC metadata` crash from a Node-style URL is gone. Credentials embedded in the
+URL are split into `spring.datasource.username/password` automatically; if you also set `DATABASE_USERNAME` /
+`DATABASE_PASSWORD`, those win.
+
+**Check the database from a single URL** — open `https://<your-backend>/api/health`:
+
+```json
+{ "status": "UP", "service": "Task & Sprint Tracker Backend", "database": "UP" }
+```
+
+If the database is unreachable you get `"database": "DOWN"` plus a short `databaseError` (password-free), e.g.
+`FATAL: password authentication failed for user "app_user"`. The HTTP status stays `200` so Render does not restart a
+healthy container over a temporary database hiccup; `/actuator/health` still reports `DOWN` for probes.
+
+Startup logs also print the sanitized target and the real `SELECT 1` result:
+
+```
+Database target: jdbc:postgresql://ep-xxx.neon.tech/neondb?sslmode=require (user: app_user, profiles: prod)
+Database connection OK — PostgreSQL 17.2 (read-write check passed)
+```
+
+If it fails, the log block lists the usual suspects. The short version:
+
+| Symptom | Cause | Fix |
+| :--- | :--- | :--- |
+| `Failed to configure a DataSource` / `No database is configured` | No env var and no `application-local.properties` | `docker compose up -d` then copy `application-local.properties.example`, or set `DATABASE_URL` |
+| `Unable to determine Dialect without JDBC metadata` | A Node-style URL reached the JDBC driver (older builds) | Update to current `main`; or convert to `jdbc:postgresql://…` yourself |
+| `password authentication failed` | Password copied wrong, or URL-encoding needed | Percent-encode `@ # : / ?` in the password (`p@ss` → `p%40ss`) |
+| `Connection refused` on port 5432 locally | Nothing listening — Docker not started, or Postgres not installed | `docker compose up -d`, or install/start Postgres |
+| `port is already allocated` | Another Postgres already uses 5432 | Change the host port in `docker-compose.yml` (`"5433:5432"`) and update the URL |
+| Data disappears after `docker compose down -v` | `-v` deletes the named volume | Use `docker compose down` (no `-v`) to keep data |
+| `The connection attempt failed` / timeout | Neon project suspended, wrong host, or cluster cannot egress port 5432 | Wake the Neon project, check the host, review the NetworkPolicy |
+| `SSL required` / `no pg_hba.conf entry` | Missing TLS mode | Keep `?sslmode=require` on the URL |
+| Works locally, empty data on Render | Two different databases (local file vs. Render env vars) | Compare the host in `application-local.properties` with Render's `SPRING_DATASOURCE_URL` |
+| Tables missing after deploy | `ddl-auto` overridden | Leave `SPRING_JPA_HIBERNATE_DDL_AUTO` unset (defaults to `update`) |
+
+> **Render specifics:** `render.yaml` marks the database keys `sync: false`, so they are **not** in the file — you must
+> paste them in Render → your service → **Environment**. A missing value there means Spring sees an empty datasource URL.
 
 ---
 

@@ -62,6 +62,18 @@ class EmailServiceTest {
         assertTrue(email.plainText().contains("https://app.example.com/reset-password?token=tok%2B%2F%3D"));
     }
 
+    // * Real tokens are Base64-URL (A-Z a-z 0-9 - _), so percent-encoding them must be a
+    // * no-op: the link has to stay readable and clickable in every mail client.
+    @Test
+    void sendPasswordResetEmail_RealisticUrlSafeTokenIsNotMangled() {
+        String token = "Zm9vYmFyLXRva2VuXzEyMzQ1Njc4OTA";
+
+        emailService.sendPasswordResetEmail("Alice", "alice@test.com", token, 30L);
+
+        assertTrue(sender.sent.get(0).html().contains("?token=" + token));
+        assertTrue(sender.sent.get(0).plainText().contains("?token=" + token));
+    }
+
     @Test
     void sendWelcomeEmail_ProviderFailure_IsSwallowed() {
         sender.failWith(new IllegalStateException("Brevo is down"));
