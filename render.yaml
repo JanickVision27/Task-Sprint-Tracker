@@ -20,3 +20,15 @@ services:
         value: "86400000"
       - key: CORS_ALLOWED_ORIGINS
         value: "*"
+      # Public URL of the React app — used to build the links inside emails.
+      - key: APP_FRONTEND_URL
+        value: "https://task-sprint-tracker.vercel.app"
+      # Brevo transactional email. Set these in the Render dashboard (they are secrets).
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER_EMAIL
+        sync: false
+      - key: BREVO_SENDER_NAME
+        value: "Task & Sprint Tracker"
+      - key: PASSWORD_RESET_TOKEN_TTL_MINUTES
+        value: "30"

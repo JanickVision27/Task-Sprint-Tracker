@@ -67,6 +67,22 @@ spec:
                 secretKeyRef:
                   name: sprint-tracker-secrets
                   key: JWT_SECRET
+            # Brevo credentials for welcome + password-reset emails (see k8s/secret.yml).
+            - name: BREVO_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sprint-tracker-secrets
+                  key: BREVO_API_KEY
+            - name: BREVO_SENDER_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: sprint-tracker-secrets
+                  key: BREVO_SENDER_EMAIL
+            # Override with your Vercel/custom domain so email links point at the right UI.
+            - name: APP_FRONTEND_URL
+              value: "https://task-sprint-tracker.vercel.app"
+            - name: CORS_ALLOWED_ORIGINS
+              value: "https://task-sprint-tracker.vercel.app"
           # Reserve enough CPU/memory for normal startup and cap resource consumption.
           resources:
             requests:

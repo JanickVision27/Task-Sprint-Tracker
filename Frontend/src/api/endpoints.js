@@ -9,6 +9,17 @@ export const healthApi = {
 export const authApi = {
   login: (email, password) => api.post('/auth/login', { email, password }),
   register: (data) => api.post('/auth/register', data),
+
+  // Forgot password: step 1 asks the backend to email a single-use reset link via Brevo.
+  // The response is intentionally generic (it never says whether the account exists).
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+
+  // Step 2 checks the link before rendering the form, so expired links show a friendly state.
+  validateResetToken: (token) => api.get('/auth/reset-password/validate', { params: { token } }),
+
+  // Step 3 stores the new BCrypt-hashed password and burns the token.
+  resetPassword: (token, newPassword) =>
+    api.post('/auth/reset-password', { token, newPassword }),
 };
 
 // Users

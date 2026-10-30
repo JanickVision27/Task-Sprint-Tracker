@@ -25,6 +25,7 @@ I wanted to challenge myself as a student to build something closer to what real
 | **Real-Time Updates** | Spring WebSocket (STOMP + SockJS) | To push live board changes to connected browsers instantly |
 | **Database** | PostgreSQL (Hosted on Neon) + H2 (for tests) | Cloud Postgres so I didn't overload my 8GB RAM laptop locally |
 | **Authentication** | JWT (JSON Web Tokens) + BCrypt | To hash passwords safely and keep users logged in across requests |
+| **Transactional Email** | Brevo (v3 HTTPS API) | Welcome email on sign-up and secure "forgot password" links |
 | **Frontend** | React (Vite), Tailwind CSS, React Query, Axios, `@dnd-kit` | Fast UI with drag-and-drop cards and automatic data fetching |
 | **Testing & CI** | JUnit 5 + Mockito, GitHub Actions, CodeQL, Trivy, Dependabot | Runs backend tests and security scans for pull requests to `main` and pushes to `main`; Dependabot checks updates weekly |
 | **Deployment** | Render (Backend Docker) · Vercel (Frontend) · Neon (DB) | Free cloud hosting so anyone can try the app live |
@@ -112,6 +113,21 @@ flowchart TD
 - **Logical Sprint Dates:** A sprint's end date cannot be earlier than its start date.
 - **Clean Error Messages:** A `GlobalExceptionHandler` catches validation and business-rule errors and sends clear messages back to the React UI instead of crashing.
 
+### 3. Emails & Password Reset (Brevo)
+
+Both emails are sent through **Brevo's transactional HTTPS API** (not SMTP — free container hosts block outbound SMTP ports). The HTML is a branded, table-based template that mirrors the app UI, with a plain-text fallback for every message.
+
+- **Welcome / confirmation email:** fired right after `POST /api/auth/register`. It greets the user by name, confirms the address and the role they picked, explains Projects → Sprints → Tasks, and links to their dashboard. The registration response does **not** wait for Brevo (the send happens on a background thread), so a mail provider outage never breaks sign-up.
+- **Forgot password:** the user clicks *Forgot password?* on the login screen, the backend creates a **single-use, 30-minute token** and emails a link to `https://<frontend>/reset-password?token=...`. The page verifies the link first (so expired links get a friendly "request a new one" screen), then the new password is BCrypt-hashed and the token is destroyed.
+
+Security details worth calling out:
+- Only the **SHA-256 hash** of the reset token is stored, so a database leak cannot be replayed to take over accounts.
+- `POST /api/auth/forgot-password` always returns the same generic message, so it cannot be used to discover which emails are registered.
+- Requesting a new link revokes the older ones; using a link marks it used and deletes every other outstanding link for that account.
+- User-supplied values (name, email) are HTML-escaped before they land in an email.
+
+A rendered preview of both emails is committed at [`Backend/docs/email-previews.html`](Backend/docs/email-previews.html) — open it in a browser to review the design without sending anything.
+
 ---
 
 ## Main API Endpoints
@@ -121,6 +137,9 @@ flowchart TD
 | `GET` | `/api/health` | Public health check used by Render (`{"status": "UP"}`) |
 | `POST` | `/api/auth/register` | Register a new user account |
 | `POST` | `/api/auth/login` | Log in and receive a JWT token |
+| `POST` | `/api/auth/forgot-password` | Email a single-use password reset link via Brevo (generic response, no user enumeration) |
+| `GET` | `/api/auth/reset-password/validate?token=...` | Check whether a reset link is still valid before showing the form |
+| `POST` | `/api/auth/reset-password` | Set a new password with a valid token (BCrypt-hashed, token burned) |
 | `GET / POST` | `/api/projects` | View all projects or create a new project |
 | `DELETE` | `/api/projects/{id}` | Delete a project and all its sprints, tasks, and comments |
 | `GET` | `/api/sprints/project/{projectId}` | Get all sprints inside a project |
@@ -168,7 +187,19 @@ spring.datasource.username=<your-db-username>
 spring.datasource.password=<your-db-password>
 app.jwt.secret=your-local-secret-key-at-least-32-characters-long
 app.jwt.expiration=86400000
+
+# Brevo transactional email (welcome email + password reset)
+app.brevo.api-key=xkeysib-your-brevo-v3-api-key
+app.brevo.sender-email=no-reply@yourdomain.com
+app.brevo.sender-name=Task & Sprint Tracker
+
+# Where the links inside the emails should point
+app.frontend-url=http://localhost:5173
 ```
+
+> **Brevo setup:** create a free account → **SMTP & API → API Keys** for the key, then verify your sender under **Senders & IP → Senders** (otherwise Brevo rejects the request with *"sender not valid"*). Every variable is also available as an environment variable (`BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME`, `APP_FRONTEND_URL`, `PASSWORD_RESET_TOKEN_TTL_MINUTES`) — see `Backend/.env.example`.
+>
+> No Brevo key yet? Set `BREVO_ENABLED=false` (or leave `app.brevo.api-key` empty) and the app still works: emails are skipped with a warning in the log, and sign-up / password reset keep functioning.
 Run the backend (or run the automated tests):
 ```bash
 cd Backend
