@@ -1,0 +1,36 @@
+# Local development database for Task & Sprint Tracker.
+#
+#   docker compose up -d          # start Postgres 16 on localhost:5432
+#   docker compose ps             # wait for "healthy"
+#   docker compose logs -f db     # watch the server log
+#   docker compose down           # stop (data survives in the named volume)
+#   docker compose down -v        # stop AND delete all data
+#
+# Credentials here match Backend/application-local.properties.example.
+# If port 5432 is already used by another Postgres on your machine, change the
+# host side only (e.g. "5433:5432") and update the URL in your local properties.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: sprint-tracker-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sprint_tracker
+      POSTGRES_USER: sprint_tracker
+      POSTGRES_PASSWORD: local_dev_password
+      # Fast startup for a throwaway dev database; do not copy this to production.
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    ports:
+      - "5432:5432"
+    volumes:
+      - sprint_tracker_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Spring Boot starts instantly, so make it easy to see when the DB is ready.
+      test: ["CMD-SHELL", "pg_isready -U sprint_tracker -d sprint_tracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  sprint_tracker_pgdata:

@@ -60,8 +60,14 @@ public class EmailService {
     @Async(AsyncConfig.EMAIL_EXECUTOR)
     public void sendPasswordResetEmail(String name, String email, String rawToken, long ttlMinutes) {
         try {
+            // * UriUtils.encode (not encodeQueryParam): the latter deliberately leaves '+', '/' and
+            // * '?' untouched because they are legal inside a query parameter, so a token containing
+            // * '+' would arrive as a space after form/query decoding. encode() percent-escapes
+            // * everything outside the unreserved set (A-Z a-z 0-9 - . _ ~), which is exactly what a
+            // * token needs. Our Base64-URL tokens only use unreserved characters, so they pass
+            // * through unchanged and the link stays readable.
             String resetUrl = frontendUrl + "/reset-password?token="
-                    + UriUtils.encodeQueryParam(rawToken, StandardCharsets.UTF_8);
+                    + UriUtils.encode(rawToken, StandardCharsets.UTF_8);
 
             emailSender.sendHtml(
                     email,

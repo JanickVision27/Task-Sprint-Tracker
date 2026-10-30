@@ -1,0 +1,50 @@
+# ---------------------------------------------------------------------------
+# LOCAL DEVELOPMENT CONFIG TEMPLATE
+# ---------------------------------------------------------------------------
+# Copy this file to application-local.properties in the SAME folder and fill in
+# your values:
+#
+#   Windows (PowerShell) : Copy-Item application-local.properties.example application-local.properties
+#   macOS / Linux        : cp application-local.properties.example application-local.properties
+#
+# Spring Boot loads it automatically because application.properties defaults
+# spring.profiles.active to "local". The real file is git-ignored, so your
+# passwords never get committed.
+#
+# Fastest path to a working database (from the repository root):
+#   docker compose up -d
+# ...then keep the defaults below.
+
+# --- Database (matches docker-compose.yml) ---------------------------------
+# If you already run Postgres locally, put your own database/user/password here.
+# Changed the host port in docker-compose.yml? Update it here too.
+spring.datasource.url=jdbc:postgresql://localhost:5432/sprint_tracker
+spring.datasource.username=sprint_tracker
+spring.datasource.password=local_dev_password
+
+# Or connect to a cloud database (Neon / Supabase / Render).
+# A Node-style URL is also accepted and is converted automatically:
+#   spring.datasource.url=postgresql://user:password@ep-xxx.neon.tech/neondb?sslmode=require
+# ...or the JDBC form:
+#   spring.datasource.url=jdbc:postgresql://ep-xxx.neon.tech/neondb?sslmode=require
+
+# --- JWT --------------------------------------------------------------------
+# Must be at least 32 characters. Generate one with:
+#   openssl rand -base64 48
+app.jwt.secret=local-dev-only-secret-change-me-at-least-32-bytes
+app.jwt.expiration=86400000
+
+# --- Email (optional locally) ----------------------------------------------
+# Left disabled, the backend skips Brevo and prints the password-reset link to
+# the console, so you can still test the whole flow offline. To send real mail,
+# set enabled=true and paste your Brevo key + verified sender.
+app.brevo.enabled=false
+app.brevo.api-key=
+app.brevo.sender-email=
+app.brevo.sender-name=Task & Sprint Tracker
+app.frontend-url=http://localhost:5173
+
+# --- Handy while learning ---------------------------------------------------
+# Print every SQL statement Hibernate runs (very useful when debugging data).
+spring.jpa.show-sql=false
+# logging.level.org.hibernate.SQL=debug

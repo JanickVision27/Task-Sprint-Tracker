@@ -36,9 +36,69 @@ jobs:
           cache-dependency-path: Backend/pom.xml
 
       # Run from Backend because it is the Maven project root.
+      # Tee to build.log so the next step can turn the interesting lines into check
+      # annotations, which stay readable without downloading the full Actions log.
       - name: Build and test backend
         working-directory: Backend
-        run: mvn --batch-mode --no-transfer-progress clean verify
+        run: |
+          set -o pipefail
+          mvn --batch-mode --no-transfer-progress clean verify 2>&1 | tee build.log
+
+      - name: Report backend failures as annotations
+        if: failure()
+        working-directory: Backend
+        run: |
+          echo "--- compiler / validation errors ---"
+          if [ -f build.log ]; then
+            grep -E '\[ERROR\]' build.log \
+              | grep -v -e 'Re-run Maven' -e 'For more information' -e 'Help 1' \
+              | head -12 \
+              | while IFS= read -r line; do
+                  printf '::error title=Maven::%s\n' "$(printf '%s' "$line" | tr -d '\r')"
+                done
+          fi
+          echo "--- failing test reports ---"
+          for report in target/surefire-reports/*.txt; do
+            [ -e "$report" ] || continue
+            if grep -q -e 'FAILURE!' -e '<<< ERROR' -e '<<< FAILURE' "$report"; then
+              printf '::error title=Failing test %s::%s\n' \
+                "$(basename "$report" .txt)" \
+                "$(grep -E -e 'Tests run' -e '<<<' -e 'expected' -e 'AssertionFailed' "$report" | head -3 | tr -d '\r' | tr '\n' ' ')"
+            fi
+          done
+
+  # The frontend actually ships from Vercel, outside this repository's CI, so a lint or build
+  # failure there was only visible in the Vercel dashboard — and the live site quietly kept
+  # serving the last successful deployment. Running it here surfaces that on the commit itself.
+  frontend:
+    name: Frontend lint and build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+
+      # npm ci fails fast if package.json and package-lock.json drift apart, which is a
+      # common reason a Vercel build breaks after adding a dependency.
+      - name: Install dependencies
+        working-directory: Frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint
+        working-directory: Frontend
+        run: npm run lint
+
+      # Built without VITE_API_URL on purpose: production values are injected by Vercel,
+      # but the bundle must still compile when the variable is absent.
+      - name: Build production bundle
+        working-directory: Frontend
+        run: npm run build
 
   # CodeQL runs only after compilation/tests pass, avoiding analysis of broken revisions.
   codeql:
