@@ -60,9 +60,9 @@ public class DatabaseEnvironmentPostProcessor implements EnvironmentPostProcesso
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
         String envUrl = firstNonBlank(
-                environment.getProperty("DATABASE_URL"),
-                environment.getProperty("SPRING_DATASOURCE_URL"));
-        String configuredUrl = environment.getProperty("spring.datasource.url");
+                safeGetProperty(environment, "DATABASE_URL"),
+                safeGetProperty(environment, "SPRING_DATASOURCE_URL"));
+        String configuredUrl = safeGetProperty(environment, "spring.datasource.url");
 
         // * Precedence: an explicitly written spring.datasource.url (for example from
         // * application-local.properties or a system property) beats the env vars, because
@@ -87,18 +87,16 @@ public class DatabaseEnvironmentPostProcessor implements EnvironmentPostProcesso
         }
 
         String envUsername = firstNonBlank(
-                environment.getProperty("DATABASE_USERNAME"),
-                environment.getProperty("SPRING_DATASOURCE_USERNAME"));
+                safeGetProperty(environment, "DATABASE_USERNAME"),
+                safeGetProperty(environment, "SPRING_DATASOURCE_USERNAME"));
         String envPassword = firstNonBlank(
-                environment.getProperty("DATABASE_PASSWORD"),
-                environment.getProperty("SPRING_DATASOURCE_PASSWORD"));
+                safeGetProperty(environment, "DATABASE_PASSWORD"),
+                safeGetProperty(environment, "SPRING_DATASOURCE_PASSWORD"));
 
-        String configuredUsername = isResolved(environment.getProperty("spring.datasource.username"))
-                ? environment.getProperty("spring.datasource.username")
-                : null;
-        String configuredPassword = isResolved(environment.getProperty("spring.datasource.password"))
-                ? environment.getProperty("spring.datasource.password")
-                : null;
+        String configuredRawUsername = safeGetProperty(environment, "spring.datasource.username");
+        String configuredRawPassword = safeGetProperty(environment, "spring.datasource.password");
+        String configuredUsername = isResolved(configuredRawUsername) ? configuredRawUsername : null;
+        String configuredPassword = isResolved(configuredRawPassword) ? configuredRawPassword : null;
 
         DatabaseUrlNormalizer.NormalizedUrl normalized = DatabaseUrlNormalizer.normalize(
                 candidate,
@@ -131,6 +129,23 @@ public class DatabaseEnvironmentPostProcessor implements EnvironmentPostProcesso
      */
     private static boolean isResolved(String value) {
         return value != null && !value.isBlank() && !value.contains("${");
+    }
+
+    /**
+     * * Reads a property without letting an unresolvable placeholder abort startup.
+     *
+     * * application.properties declares `spring.datasource.url=${DATABASE_URL:${SPRING_DATASOURCE_URL}}`.
+     * * When neither environment variable is set, Spring 6.1+ throws
+     * * PlaceholderResolutionException from getProperty() instead of returning the raw text, which
+     * * would replace our actionable message with a cryptic stack trace. An unresolved placeholder
+     * * simply means "this value is not configured", so null is the correct answer here.
+     */
+    private static String safeGetProperty(ConfigurableEnvironment environment, String key) {
+        try {
+            return environment.getProperty(key);
+        } catch (RuntimeException ex) {
+            return null;
+        }
     }
 
     private static String firstNonBlank(String... values) {

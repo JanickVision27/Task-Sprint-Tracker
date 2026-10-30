@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -50,16 +51,25 @@ class EmailServiceTest {
 
     @Test
     void sendPasswordResetEmail_UsesFrontendUrlAndEncodesToken() {
-        emailService.sendPasswordResetEmail("Alice", "alice@test.com", "tok+en/=", 30L);
+        String token = "tok+en/=";
+
+        emailService.sendPasswordResetEmail("Alice", "alice@test.com", token, 30L);
 
         assertEquals(1, sender.sent.size());
         SentEmail email = sender.sent.get(0);
 
         assertEquals(EmailTemplates.PASSWORD_RESET_SUBJECT, email.subject());
-        assertTrue(email.html().contains("https://app.example.com/reset-password?token=tok%2B%2F%3D"),
-                "the token must be URL-encoded inside the link");
         assertTrue(email.html().contains("30 minutes"));
-        assertTrue(email.plainText().contains("https://app.example.com/reset-password?token=tok%2B%2F%3D"));
+
+        // * '+' must never survive into a query string: it is decoded as a space, so the link
+        // * would arrive with a token the backend cannot find. '/' and '=' must be escaped too.
+        // * Hex digits are compared case-insensitively because the encoder may emit either form.
+        String expectedParam = "?token=tok%2ben%2f%3d";
+        assertTrue(email.html().toLowerCase(Locale.ROOT).contains(expectedParam),
+                "the token must be percent-encoded inside the HTML link");
+        assertTrue(email.plainText().toLowerCase(Locale.ROOT).contains(expectedParam),
+                "the token must be percent-encoded inside the plain-text link");
+        assertFalse(email.html().contains("?token=" + token), "the raw token must never appear in a link");
     }
 
     // * Real tokens are Base64-URL (A-Z a-z 0-9 - _), so percent-encoding them must be a
