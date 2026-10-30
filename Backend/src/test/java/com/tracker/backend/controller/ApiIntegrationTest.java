@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tracker.backend.dto.CreateProjectRequest;
 import com.tracker.backend.dto.CreateSprintRequest;
 import com.tracker.backend.dto.CreateTaskRequest;
+import com.tracker.backend.dto.ForgotPasswordRequest;
 import com.tracker.backend.dto.RegisterRequest;
+import com.tracker.backend.dto.ResetPasswordRequest;
 import com.tracker.backend.entity.Role;
 import com.tracker.backend.entity.TaskStatus;
 import org.junit.jupiter.api.Test;
@@ -58,6 +60,77 @@ class ApiIntegrationTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("User registered successfully!"));
+    }
+
+    // Test 1b: /api/auth/forgot-password is public and always answers 200 with a generic message,
+    // even for an address that has no account (prevents user enumeration via this endpoint).
+    @Test
+    void forgotPassword_UnknownEmail_ReturnsGenericOk() throws Exception {
+        ForgotPasswordRequest request = new ForgotPasswordRequest();
+        request.setEmail("nobody@test.com");
+
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("If an account exists")));
+    }
+
+    // Test 1c: /api/auth/forgot-password validates the email format before doing any work.
+    @Test
+    void forgotPassword_InvalidEmail_ReturnsBadRequest() throws Exception {
+        ForgotPasswordRequest request = new ForgotPasswordRequest();
+        request.setEmail("not-an-email");
+
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("email")));
+    }
+
+    // Test 1d: /api/auth/forgot-password is public and never needs a JWT.
+    @Test
+    void forgotPassword_MatchesPublicAuthRoutes() throws Exception {
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"integration@test.com\"}"))
+                .andExpect(status().isOk());
+    }
+
+    // Test 1e: an unknown/forged reset token is rejected with 400 and a readable message.
+    @Test
+    void resetPassword_InvalidToken_ReturnsBadRequest() throws Exception {
+        ResetPasswordRequest request = new ResetPasswordRequest();
+        request.setToken("forged-token");
+        request.setNewPassword("brand-new-password");
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("invalid or has already been used")));
+    }
+
+    // Test 1f: too-short passwords are rejected by bean validation before touching the database.
+    @Test
+    void resetPassword_ShortPassword_ReturnsBadRequest() throws Exception {
+        ResetPasswordRequest request = new ResetPasswordRequest();
+        request.setToken("forged-token");
+        request.setNewPassword("short");
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // Test 1g: the reset-link validation endpoint reports "invalid" instead of throwing.
+    @Test
+    void validateResetToken_ForgedToken_ReturnsInvalidFalse() throws Exception {
+        mockMvc.perform(get("/api/auth/reset-password/validate").param("token", "forged-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.valid").value(false));
     }
 
     // Test 2: Protected endpoint (/api/projects) rejects unauthenticated requests with 403

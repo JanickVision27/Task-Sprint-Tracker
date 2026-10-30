@@ -40,6 +40,9 @@ class AuthServiceTest {
     @Mock
     private JwtService jwtService;
 
+    @Mock
+    private EmailService emailService;
+
     @InjectMocks
     private AuthService authService;
 
@@ -72,6 +75,8 @@ class AuthServiceTest {
         assertEquals(Role.MEMBER, response.getUser().getRole());
         verify(passwordEncoder, times(1)).encode("password123");
         verify(userRepository, times(1)).save(any(User.class));
+        // The Brevo welcome email must be triggered exactly once, with the saved user's details.
+        verify(emailService, times(1)).sendWelcomeEmail("Alice", "alice@test.com", Role.MEMBER);
     }
 
     // Test 2: Registering with an existing email throws IllegalStateException
@@ -92,6 +97,8 @@ class AuthServiceTest {
         );
         assertTrue(ex.getMessage().contains("Email already in use"));
         verify(userRepository, never()).save(any(User.class));
+        // No account was created, so no welcome email may be sent.
+        verify(emailService, never()).sendWelcomeEmail(anyString(), anyString(), any());
     }
 
     // Test 3: Logging in with valid credentials returns JWT token and user details

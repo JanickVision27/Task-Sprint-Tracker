@@ -18,13 +18,15 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager; // Verifies login credentials
     private final JwtService jwtService;                       // Generates the JWT token
+    private final EmailService emailService;                   // Sends the welcome email through Brevo
 
-    // Constructor: Spring automatically injects all 4 dependencies here
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, JwtService jwtService) {
+    // Constructor: Spring automatically injects all dependencies here
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, JwtService jwtService, EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
+        this.emailService = emailService;
     }
 
     public AuthResponse register(RegisterRequest request) {
@@ -50,6 +52,10 @@ public class AuthService {
 
         // 5. Save to database
         User savedUser = userRepository.save(user);
+
+        // 6. Welcome / confirmation email. This runs on a background thread (@Async) and
+        //    swallows its own failures, so a Brevo hiccup can never fail the registration.
+        emailService.sendWelcomeEmail(savedUser.getName(), savedUser.getEmail(), savedUser.getRole());
 
         AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo(
                 savedUser.getId(),
