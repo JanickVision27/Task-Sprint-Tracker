@@ -40,6 +40,39 @@ jobs:
         working-directory: Backend
         run: mvn --batch-mode --no-transfer-progress clean verify
 
+  # The frontend actually ships from Vercel, outside this repository's CI, so a lint or build
+  # failure there was only visible in the Vercel dashboard — and the live site quietly kept
+  # serving the last successful deployment. Running it here surfaces that on the commit itself.
+  frontend:
+    name: Frontend lint and build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+
+      # npm ci fails fast if package.json and package-lock.json drift apart, which is a
+      # common reason a Vercel build breaks after adding a dependency.
+      - name: Install dependencies
+        working-directory: Frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint
+        working-directory: Frontend
+        run: npm run lint
+
+      # Built without VITE_API_URL on purpose: production values are injected by Vercel,
+      # but the bundle must still compile when the variable is absent.
+      - name: Build production bundle
+        working-directory: Frontend
+        run: npm run build
+
   # CodeQL runs only after compilation/tests pass, avoiding analysis of broken revisions.
   codeql:
     name: CodeQL analysis

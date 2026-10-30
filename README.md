@@ -338,6 +338,55 @@ If it fails, the log block lists the usual suspects. The short version:
 
 ---
 
+## Deploying to Vercel + Render
+
+The frontend and backend deploy separately, and **they must be in sync**. The screens you see are built from the
+frontend commit while every piece of data comes from the backend — so "the site did not update" is usually one of the
+three situations below.
+
+### Checklist
+
+| # | Where | Setting | Why it matters |
+| :--- | :--- | :--- | :--- |
+| 1 | Vercel → Settings → **General → Root Directory** | `Frontend` | Without it the build runs at the repo root, finds no `package.json`, fails, and the site keeps serving the last successful deployment |
+| 2 | Vercel → Settings → **Environment Variables** | `VITE_API_URL=https://<backend-host>` (no trailing slash, no `/api`) | Without it the bundle calls `/api` on the Vercel domain, gets `index.html` back, and every screen looks broken |
+| 3 | Vercel → **Deployments → Redeploy** | after changing #2 | **`VITE_*` values are baked into the bundle at build time.** Editing the variable does not touch an existing deployment |
+| 4 | Render → your service | redeploy the same commit | A new frontend calling new endpoints (like `/api/auth/forgot-password`) returns 404 against an old backend |
+| 5 | Render → Environment | `DATABASE_URL`, `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `APP_FRONTEND_URL` | See [Troubleshooting the Database](#troubleshooting-the-database) and the Brevo notes above |
+
+### Verify a deployment in three commands
+
+```bash
+# 1. Is the backend awake and is its database reachable?
+curl -s https://<backend-host>/api/health
+#    -> {"status":"UP","service":"...","database":"UP"}
+
+# 2. Which backend URL is baked into the bundle Vercel is serving right now?
+ASSET=$(curl -s https://<vercel-host>/ | grep -o '/assets/index-[A-Za-z0-9_-]*\.js' | head -1)
+curl -s "https://<vercel-host>${ASSET}" | grep -o 'https://[a-z0-9.-]*\.onrender\.com' | head -1
+#    -> prints the API host from the live bundle, or nothing if VITE_API_URL was missing
+
+# 3. Is an API route served by the API rather than the SPA?
+curl -s -o /dev/null -w '%{http_code} %{content_type}\n' https://<vercel-host>/api/health
+#    -> 404 text/plain is expected (the SPA no longer swallows /api);
+#       text/html would mean the request was answered by index.html
+```
+
+### Why `/api` used to return HTML
+
+`vercel.json` used to rewrite **every** path to `index.html`. A request to `/api/health` therefore came back as
+`200 text/html`, so axios received a web page instead of JSON and the UI showed an endless spinner, "Invalid email or
+password", or stale/empty data. The rewrite is now scoped to non-API paths (`/((?!api/|ws/).*)`), and `client.js`
+detects an HTML response and surfaces a clear message. A deployment without `VITE_API_URL` also shows an amber
+**"Backend not configured"** banner on every auth screen instead of failing silently.
+
+### What CI now checks
+
+`.github/workflows/ci.yml` gained a **Frontend lint and build** job (`npm ci`, `npm run lint`, `npm run build`) next to
+the Maven job, so a broken frontend build — which previously only appeared inside Vercel — fails the commit check.
+
+---
+
 ## DevOps & Deployment
 
 - **Automated checks:** GitHub Actions builds and tests the Java 21 backend, then runs CodeQL and Trivy in parallel. Trivy reports findings but currently does not fail the pipeline for them. Jenkins and Azure Pipelines examples also run Trivy; Dependabot checks for updates weekly.

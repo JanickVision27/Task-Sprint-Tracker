@@ -1,3 +1,5 @@
+import { API_CONFIG_ERROR } from '../api/client';
+
 /**
  * * Shared shell for the auth screens: brand mark, title, subtitle and a centred card column.
  * * Keeping it in one place means Login, Register, Forgot password and Reset password all
@@ -7,6 +9,14 @@ export default function AuthLayout({ title, subtitle, children, maxWidth = 'max-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-4 py-8">
       <div className={`w-full ${maxWidth}`}>
+        {/* Deployment misconfiguration (for example a missing VITE_API_URL on Vercel).
+            Shown here so every auth screen explains the problem instead of failing silently. */}
+        {API_CONFIG_ERROR && (
+          <div className="mb-4 p-3.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs leading-relaxed">
+            <p className="font-semibold mb-1">Backend not configured</p>
+            <p>{API_CONFIG_ERROR}</p>
+          </div>
+        )}
         {/* Brand Header */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 text-white font-bold text-xl shadow-sm mb-3">
