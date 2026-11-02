@@ -1,4 +1,8 @@
 {
+    "terminal.integrated.env.windows": {
+        "JAVA_HOME": "C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.13.9-hotspot",
+        "Path": "C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.13.9-hotspot\\bin;${env:Path}"
+    },
     "chat.tools.terminal.autoApprove": {
         "Push-Location": true,
         "npx eslint": true,
