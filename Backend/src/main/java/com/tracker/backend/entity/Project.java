@@ -37,6 +37,20 @@ public class Project {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    /**
+     * * The Manager responsible for this project, chosen by the Admin who created it.
+     *
+     * * It is optional: projects created before this feature (and projects awaiting a new
+     * * manager) simply have a NULL manager_id, so the column must stay nullable and the
+     * * schema can be upgraded in place by Hibernate's ddl-auto=update.
+     *
+     * * LAZY keeps the project list cheap — ProjectRepository fetches the manager in the same
+     * * query (see @EntityGraph there) only where the DTO needs it.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "manager_id")
+    private User manager;
+
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Sprint> sprints = new ArrayList<>();
 

@@ -1,6 +1,7 @@
 package com.tracker.backend.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,4 +15,13 @@ public class CreateProjectRequest {
 
     @Size(max = 500, message = "Description must be less than 500 characters")
     private String description;
+
+    /**
+     * * Id of the MANAGER who should own this project.
+     *
+     * * Optional on purpose: leaving it out (or sending null) creates the project without a
+     * * manager, which keeps the endpoint backward compatible for existing API clients.
+     */
+    @Positive(message = "Manager id must be a positive number")
+    private Long managerId;
 }

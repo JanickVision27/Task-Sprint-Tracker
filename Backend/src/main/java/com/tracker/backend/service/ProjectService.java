@@ -2,11 +2,14 @@ package com.tracker.backend.service;
 
 import com.tracker.backend.dto.CreateProjectRequest;
 import com.tracker.backend.dto.ProjectResponse;
+import com.tracker.backend.entity.Project;
+import com.tracker.backend.entity.Role;
+import com.tracker.backend.entity.User;
+import com.tracker.backend.repository.CommentRepository;
 import com.tracker.backend.repository.ProjectRepository;
 import com.tracker.backend.repository.SprintRepository;
 import com.tracker.backend.repository.TaskRepository;
-import com.tracker.backend.repository.CommentRepository;
-import com.tracker.backend.entity.Project;
+import com.tracker.backend.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,19 +23,30 @@ public class ProjectService {
     private final SprintRepository sprintRepository;
     private final TaskRepository taskRepository;
     private final CommentRepository commentRepository;
+    private final UserRepository userRepository;
 
-    public ProjectService(ProjectRepository projectRepository, SprintRepository sprintRepository, TaskRepository taskRepository, CommentRepository commentRepository) {
+    public ProjectService(ProjectRepository projectRepository,
+                          SprintRepository sprintRepository,
+                          TaskRepository taskRepository,
+                          CommentRepository commentRepository,
+                          UserRepository userRepository) {
         this.projectRepository = projectRepository;
         this.sprintRepository = sprintRepository;
         this.taskRepository = taskRepository;
         this.commentRepository = commentRepository;
+        this.userRepository = userRepository;
     }
 
     // 1. CREATE
+    // * @Transactional keeps the session open while the manager is resolved and mapped into
+    // * the response, because spring.jpa.open-in-view is disabled.
+    @Transactional
     public ProjectResponse createProject(CreateProjectRequest request) {
         Project project = new Project();
         project.setName(request.getName());
         project.setDescription(request.getDescription());
+        // * The Admin picks the Manager responsible for the project. Optional: null is allowed.
+        project.setManager(resolveManager(request.getManagerId()));
 
         Project savedProject = projectRepository.save(project);
 
@@ -40,6 +54,7 @@ public class ProjectService {
     }
 
     // 2. READ ALL
+    @Transactional(readOnly = true)
     public List<ProjectResponse> getAllProjects() {
         return projectRepository.findAll()
                 .stream()
@@ -48,6 +63,7 @@ public class ProjectService {
     }
 
     // 3. READ ONE
+    @Transactional(readOnly = true)
     public ProjectResponse getProjectById(Long id) {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Project not found with id: " + id));
@@ -56,12 +72,15 @@ public class ProjectService {
     }
 
     // 4. UPDATE
+    @Transactional
     public ProjectResponse updateProject(Long id, CreateProjectRequest request) {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Project not found with id: " + id));
 
         project.setName(request.getName());
         project.setDescription(request.getDescription());
+        // * An explicit null clears the assignment, so the Admin can unassign a manager.
+        project.setManager(resolveManager(request.getManagerId()));
 
         Project updatedProject = projectRepository.save(project);
 
@@ -83,6 +102,27 @@ public class ProjectService {
         projectRepository.delete(project);
     }
 
+    // --- HELPER: validates and loads the manager chosen by the Admin ---
+    private User resolveManager(Long managerId) {
+        // * No manager chosen (or the Admin cleared it) — the project simply has none.
+        if (managerId == null) {
+            return null;
+        }
+
+        User manager = userRepository.findById(managerId)
+                .orElseThrow(() -> new EntityNotFoundException("No user found with id: " + managerId));
+
+        // * A project is owned by a Manager, so only MANAGER accounts are accepted. Admins and
+        // * Members are rejected with a message the UI can show directly.
+        if (manager.getRole() != Role.MANAGER) {
+            throw new IllegalArgumentException(
+                    manager.getName() + " has the " + manager.getRole() + " role. "
+                            + "Only users with the MANAGER role can be assigned as a project manager.");
+        }
+
+        return manager;
+    }
+
     // --- HELPER METHOD: Converts Entity to DTO ---
     private ProjectResponse mapToResponse(Project project) {
         ProjectResponse response = new ProjectResponse();
@@ -91,6 +131,15 @@ public class ProjectService {
         response.setDescription(project.getDescription());
         response.setCreatedAt(project.getCreatedAt());
         response.setUpdatedAt(project.getUpdatedAt());
+
+        User manager = project.getManager();
+        if (manager != null) {
+            response.setManagerId(manager.getId());
+            response.setManagerName(manager.getName());
+            response.setManagerEmail(manager.getEmail());
+            response.setManagerRole(manager.getRole());
+        }
+
         return response;
     }
 

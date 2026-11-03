@@ -2,9 +2,21 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { projectApi } from '../api/endpoints';
+import { projectApi, userApi } from '../api/endpoints';
 import Modal from '../components/Modal';
 import RoleGuideButton from '../components/RoleGuideModal';
+
+// Initials for the small manager avatar shown on each project card.
+function initials(name) {
+  if (!name) return '?';
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+}
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
@@ -12,11 +24,18 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [newProject, setNewProject] = useState({ name: '', description: '' });
+  const [newProject, setNewProject] = useState({ name: '', description: '', managerId: '' });
 
   const { data: projects, isLoading } = useQuery({
     queryKey: ['projects'],
     queryFn: () => projectApi.getAll().then((res) => res.data),
+  });
+
+  // Only Admins can create projects, so this is fetched lazily when the modal opens.
+  const { data: managers } = useQuery({
+    queryKey: ['users', 'managers'],
+    queryFn: () => userApi.getManagers().then((res) => res.data),
+    enabled: isCreateOpen && user?.role === 'ADMIN',
   });
 
   const createMutation = useMutation({
@@ -24,7 +43,7 @@ export default function DashboardPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       setIsCreateOpen(false);
-      setNewProject({ name: '', description: '' });
+      setNewProject({ name: '', description: '', managerId: '' });
     },
   });
 
@@ -38,6 +57,8 @@ export default function DashboardPage() {
     createMutation.mutate({
       name: newProject.name.trim(),
       description: newProject.description.trim(),
+      // '' means "no manager chosen"; the backend accepts null and creates an unassigned project.
+      managerId: newProject.managerId ? Number(newProject.managerId) : null,
     });
   }
 
@@ -137,6 +158,28 @@ export default function DashboardPage() {
                 <p className="text-sm text-slate-500 mt-2 line-clamp-3">
                   {project.description || 'No description provided.'}
                 </p>
+
+                {/* Manager chosen by the Admin when the project was created */}
+                <div className="mt-4 flex items-center gap-2">
+                  {project.managerName ? (
+                    <>
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-bold shrink-0">
+                        {initials(project.managerName)}
+                      </span>
+                      <span className="text-xs text-slate-600 truncate">
+                        <span className="font-medium text-slate-800">{project.managerName}</span>
+                        <span className="text-slate-400"> · Manager</span>
+                      </span>
+                    </>
+                  ) : (
+                    <span className="inline-flex items-center gap-2 text-xs text-slate-400">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-dashed border-slate-300 text-[10px]">
+                        ?
+                      </span>
+                      No manager assigned
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-indigo-600">
@@ -171,6 +214,37 @@ export default function DashboardPage() {
               onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
               className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
+          </div>
+
+          {/* The Admin assigns the Manager who will own this project. */}
+          <div className="mb-5">
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Assign Manager <span className="font-normal text-slate-400">(optional)</span>
+            </label>
+            <select
+              value={newProject.managerId}
+              onChange={(e) => setNewProject({ ...newProject, managerId: e.target.value })}
+              className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="">No manager yet</option>
+              {managers?.map((manager) => (
+                <option key={manager.id} value={manager.id}>
+                  {manager.name} ({manager.email})
+                </option>
+              ))}
+            </select>
+
+            {managers && managers.length === 0 ? (
+              <p className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                There are no Manager accounts yet. Someone needs to register with the
+                <strong> Manager </strong> role before a project can be assigned to them — you can
+                create the project now and assign a manager later.
+              </p>
+            ) : (
+              <p className="mt-1.5 text-xs text-slate-500">
+                Only users with the Manager role can own a project.
+              </p>
+            )}
           </div>
 
           {createMutation.isError && (

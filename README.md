@@ -104,9 +104,23 @@ flowchart TD
 - Passwords are encrypted using **BCrypt** (plain-text passwords are never stored).
 - Logging in returns a **JWT token** that the frontend saves and sends in the `Authorization: Bearer <token>` header.
 - Three roles are supported:
-  - **ADMIN:** Full access to everything.
-  - **MANAGER:** Can create and delete Projects and Sprints, and manage all tasks.
+  - **ADMIN:** Full access to everything. Creates projects and **assigns a Manager to each one**.
+  - **MANAGER:** Owns the projects assigned to them; creates and deletes Sprints, and manages tasks.
   - **MEMBER:** Can view boards, create tasks, claim unassigned tasks, and move their own assigned tasks.
+
+### Project → Manager assignment
+
+When an Admin creates a project, the modal includes an **Assign Manager** picker listing only
+`MANAGER` accounts (`GET /api/users?role=MANAGER`). The choice is sent as `managerId` with the project and
+stored on `projects.manager_id`.
+
+- The assignment is **optional** — a project can be created unassigned and given a manager later
+  (`PUT /api/projects/{id}` with `managerId`, or send `null` to clear it).
+- Only `MANAGER` accounts are accepted. Assigning an Admin or a Member returns `400` with a readable
+  message instead of storing a meaningless owner.
+- The manager's name and email are returned on every project response, shown as an avatar chip on the
+  dashboard cards and in the project header. `ProjectRepository` fetches the manager in the **same
+  query** (`@EntityGraph`), so listing projects stays one query instead of N+1.
 
 ### 2. Practical Business Rules
 - **No "DONE" Without an Assignee:** A task cannot be moved to the `DONE` column unless someone is assigned to it (`Cannot move task to DONE without an assignee`).
@@ -140,7 +154,9 @@ A rendered preview of both emails is committed at [`Backend/docs/email-previews.
 | `POST` | `/api/auth/forgot-password` | Email a single-use password reset link via Brevo (generic response, no user enumeration) |
 | `GET` | `/api/auth/reset-password/validate?token=...` | Check whether a reset link is still valid before showing the form |
 | `POST` | `/api/auth/reset-password` | Set a new password with a valid token (BCrypt-hashed, token burned) |
-| `GET / POST` | `/api/projects` | View all projects or create a new project |
+| `GET / POST` | `/api/projects` | View all projects, or create one (Admin only, with an optional `managerId`) |
+| `PUT` | `/api/projects/{id}` | Update a project and reassign or clear its Manager (Admin only) |
+| `GET` | `/api/users?role=MANAGER` | List assignable managers for the picker |
 | `DELETE` | `/api/projects/{id}` | Delete a project and all its sprints, tasks, and comments |
 | `GET` | `/api/sprints/project/{projectId}` | Get all sprints inside a project |
 | `POST / DELETE` | `/api/sprints` | Create or delete a sprint (Managers & Admins) |
@@ -172,7 +188,8 @@ Building this project was a huge learning curve for me. Coming in as a beginner 
 
 This project is a strong working MVP, and I am continuing to learn and improve it:
 - [ ] **Task Comments UI Modal:** The backend CRUD APIs for comments (`/api/comments`) are already built and tested; next, I want to add a slide-over panel on each task card so teammates can chat inside a task on the frontend.
-- [ ] **Deeper JPA Entity Relationships:** Upgrade `assigneeId` and `authorId` from simple ID numbers to full `@ManyToOne` `User` relationships so task cards display the assignee's full name and avatar directly.
+- [x] **Deeper JPA Entity Relationships (first step):** `Project.manager` is now a real `@ManyToOne` `User` relation, shown with an avatar chip on the dashboard.
+- [ ] **Deeper JPA Entity Relationships (next):** Upgrade `assigneeId` and `authorId` from simple ID numbers to full `@ManyToOne` `User` relationships so task cards display the assignee's full name and avatar directly.
 - [ ] **Team Member Invite & Filter Bar:** Allow filtering the Kanban board by priority (`HIGH`, `MEDIUM`, `LOW`) or by assigned teammate.
 
 ---
