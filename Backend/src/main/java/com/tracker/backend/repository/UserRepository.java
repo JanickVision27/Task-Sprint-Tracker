@@ -1,9 +1,11 @@
 package com.tracker.backend.repository;
 
+import com.tracker.backend.entity.Role;
 import com.tracker.backend.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -17,4 +19,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     //* Used by the forgot-password flow instead of findByEmail so users can type their address
     //* however their keyboard autocapitalised it.
     Optional<User> findByEmailIgnoreCase(String email);
+
+    //* Used to populate the "Assign manager" picker with only MANAGER accounts.
+    List<User> findByRoleOrderByNameAsc(Role role);
 }

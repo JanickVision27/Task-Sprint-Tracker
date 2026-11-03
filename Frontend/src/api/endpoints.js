@@ -25,6 +25,9 @@ export const authApi = {
 // Users
 export const userApi = {
   getAll: () => api.get('/users'),
+  // Only MANAGER accounts can own a project, so the "Assign manager" picker asks for
+  // exactly those instead of filtering a full user list in the browser.
+  getManagers: () => api.get('/users', { params: { role: 'MANAGER' } }),
 };
 
 // Projects

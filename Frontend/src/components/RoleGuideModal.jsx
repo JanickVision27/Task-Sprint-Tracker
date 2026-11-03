@@ -8,6 +8,7 @@ const ROLES = [
     badgeClass: 'bg-purple-50 text-purple-700 border-purple-200',
     canDo: [
       'Only role that can create, edit, and delete Projects',
+      'Assigns a Manager to every project when creating it',
       'Full access to all Sprints and Tasks',
       'Can assign tasks to Members and approve finished tasks in Done',
     ],
@@ -17,7 +18,8 @@ const ROLES = [
     title: 'Manager — Sprint & Team Lead',
     badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
     canDo: [
-      'Create, edit, and delete Sprints (cannot create or delete Projects)',
+      'Creates, edits, and deletes Sprints inside the projects assigned to them',
+      'Cannot create or delete Projects (that stays with the Admin)',
       'Create tasks and assign them to Member accounts',
       'Notified when a Member moves a task to Done — clicks "✓ Approve & Finish" to complete & remove the task',
     ],

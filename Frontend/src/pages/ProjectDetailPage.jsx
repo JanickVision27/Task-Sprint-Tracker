@@ -112,6 +112,27 @@ export default function ProjectDetailPage() {
             <p className="text-sm text-slate-500 mt-1">
               {project?.description || 'Organize sprints and track tasks on the Kanban board.'}
             </p>
+
+            {/* Manager assigned to this project by the Admin */}
+            {project?.managerName ? (
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-indigo-50 border border-indigo-100 pl-1 pr-3 py-1">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white text-[10px] font-bold">
+                  {project.managerName
+                    .trim()
+                    .split(/\s+/)
+                    .slice(0, 2)
+                    .map((part) => part[0])
+                    .join('')
+                    .toUpperCase()}
+                </span>
+                <span className="text-xs text-indigo-900">
+                  <span className="font-semibold">{project.managerName}</span>
+                  <span className="text-indigo-400"> · Project Manager</span>
+                </span>
+              </div>
+            ) : (
+              <p className="mt-3 text-xs text-slate-400">No manager assigned to this project yet.</p>
+            )}
           </div>
           {(user?.role === 'ADMIN' || user?.role === 'MANAGER') && <button
             onClick={() => setIsCreateOpen(true)}

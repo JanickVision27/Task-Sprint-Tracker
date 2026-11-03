@@ -16,10 +16,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -133,6 +135,97 @@ class ApiIntegrationTest {
         mockMvc.perform(get("/api/auth/reset-password/validate").param("token", "forged-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.valid").value(false));
+    }
+
+    // Test 1h: An Admin creates a project AND assigns a Manager in the same request; the
+    // manager is then visible on both the create response and the project detail.
+    @Test
+    void createProject_WithManager_ReturnsAndPersistsManager() throws Exception {
+        Long managerId = registerUserAndGetId("Maya Manager", "maya.manager@test.com", Role.MANAGER);
+
+        CreateProjectRequest projectRequest = new CreateProjectRequest();
+        projectRequest.setName("Managed Project");
+        projectRequest.setDescription("Owned by a manager");
+        projectRequest.setManagerId(managerId);
+
+        MvcResult created = mockMvc.perform(post("/api/projects")
+                        .with(user("admin@test.com").roles("ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(projectRequest)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.managerId").value(managerId))
+                .andExpect(jsonPath("$.managerName").value("Maya Manager"))
+                .andExpect(jsonPath("$.managerEmail").value("maya.manager@test.com"))
+                .andReturn();
+
+        Long projectId = objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asLong();
+
+        mockMvc.perform(get("/api/projects/" + projectId).with(user("admin@test.com").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.managerName").value("Maya Manager"));
+    }
+
+    // Test 1i: A project can still be created without a manager (backward compatible).
+    @Test
+    void createProject_WithoutManager_ReturnsNullManager() throws Exception {
+        CreateProjectRequest projectRequest = new CreateProjectRequest();
+        projectRequest.setName("Unassigned Project");
+
+        mockMvc.perform(post("/api/projects")
+                        .with(user("admin@test.com").roles("ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(projectRequest)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.managerId").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    // Test 1j: Only MANAGER accounts can be assigned; a MEMBER is rejected with 400.
+    @Test
+    void createProject_AssigningMember_ReturnsBadRequest() throws Exception {
+        Long memberId = registerUserAndGetId("Mo Member", "mo.member@test.com", Role.MEMBER);
+
+        CreateProjectRequest projectRequest = new CreateProjectRequest();
+        projectRequest.setName("Wrong Owner Project");
+        projectRequest.setManagerId(memberId);
+
+        mockMvc.perform(post("/api/projects")
+                        .with(user("admin@test.com").roles("ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(projectRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", org.hamcrest.Matchers.containsString("MANAGER")));
+    }
+
+    // Test 1k: The manager picker data source only returns MANAGER accounts.
+    @Test
+    void getUsersFilteredByManagerRole_ReturnsOnlyManagers() throws Exception {
+        registerUserAndGetId("Maya Manager", "maya.filter@test.com", Role.MANAGER);
+        registerUserAndGetId("Mo Member", "mo.filter@test.com", Role.MEMBER);
+
+        mockMvc.perform(get("/api/users").param("role", "MANAGER")
+                        .with(user("admin@test.com").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].role", org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is("MANAGER"))))
+                .andExpect(jsonPath("$[*].email", org.hamcrest.Matchers.hasItem("maya.filter@test.com")))
+                .andExpect(jsonPath("$[*].email", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("mo.filter@test.com"))));
+    }
+
+    /** Registers a user through the public signup endpoint and returns the new account id. */
+    private Long registerUserAndGetId(String name, String email, Role role) throws Exception {
+        RegisterRequest registerRequest = new RegisterRequest();
+        registerRequest.setName(name);
+        registerRequest.setEmail(email);
+        registerRequest.setPassword("secret123");
+        registerRequest.setRole(role);
+
+        MvcResult result = mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(registerRequest)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        return objectMapper.readTree(result.getResponse().getContentAsString())
+                .path("user").path("id").asLong();
     }
 
     // Test 2: Protected endpoint (/api/projects) rejects unauthenticated requests with 403
