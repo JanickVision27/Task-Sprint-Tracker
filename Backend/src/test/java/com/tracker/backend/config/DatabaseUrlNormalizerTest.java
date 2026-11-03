@@ -41,6 +41,7 @@ class DatabaseUrlNormalizerTest {
         assertEquals("jdbc:postgresql://localhost:5432/tasks", result.jdbcUrl());
         assertEquals("user", result.username());
         assertEquals("pw", result.password());
+        
     }
 
     @Test
